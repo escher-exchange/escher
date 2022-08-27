@@ -235,13 +235,12 @@ fn should_update_twap_correctly() {
                 vamm_state.base_asset_twap.into_inner(),
                 original_base_twap.into_inner(),
             ) {
-                Some(q) => {
+                Some(q) =>
                     if lower <= q && q <= upper {
                         Ok(())
                     } else {
                         Err(q)
-                    }
-                }
+                    },
                 None => Err(FixedU128::default()),
             }
         });

@@ -63,7 +63,7 @@ impl<T: Config> Pallet<T> {
                 v.base_asset_reserves = base_asset_reserves;
                 v.quote_asset_reserves = quote_asset_reserves;
                 Ok(())
-            }
+            },
             None => Err(Error::<T>::FailToRetrieveVamm),
         })?;
 
