@@ -59,3 +59,18 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
+
+  doc:
+    name: Run cargo doc
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --workspace --no-deps --document-private-items
