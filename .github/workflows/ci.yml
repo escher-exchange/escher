@@ -91,7 +91,6 @@ jobs:
     name: Run cargo build
     needs: [format, clippy, check, test, doc]
     runs-on: ubuntu-latest
-    env:
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
