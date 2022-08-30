@@ -380,8 +380,10 @@ fn from_i129<N: FixedPointOperand>(n: I129) -> Option<N> {
     }
 }
 
-/// Alterative to [`sp_arithmetic::helpers_128bit::multiply_by_rational`] that does not modify
-/// the quotient of the last division and uses U256 as a backend if necessary
+/// Alterative to
+/// [`sp_runtime::helpers_128bit::multiply_by_rational_with_rounding`] that does
+/// not modify the quotient of the last division and uses U256 as a backend if
+/// necessary
 pub fn multiply_by_rational(
     mut a: u128,
     mut b: u128,
