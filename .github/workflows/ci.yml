@@ -24,7 +24,8 @@ jobs:
           components: rustfmt
       - uses: actions-rs/cargo@v1
         with:
-          command: fmt --check
+          command: fmt
+          args: --check
 
   clippy:
     name: Run cargo clippy
