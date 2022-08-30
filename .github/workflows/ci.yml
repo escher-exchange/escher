@@ -86,3 +86,22 @@ jobs:
         with:
           command: doc
           args: --workspace --no-deps --document-private-items
+
+  build:
+    name: Run cargo build
+    needs: [format, clippy, check, test, doc]
+    runs-on: ubuntu-latest
+    env:
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --workspace
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --workspace --release
