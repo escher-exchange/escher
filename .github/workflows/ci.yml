@@ -50,17 +50,24 @@ jobs:
           args: --no-deps
 
   test:
-    name: Run cargo test
+    name: Run cargo nextest
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      NEXTEST_FAILURE_OUTPUT: final
+      NEXTEST_SUCCESS_OUTPUT: never
+      NEXTEST_STATUS_LEVEL: fail
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          components: nextest
       - uses: Swatinem/rust-cache@v2
       - uses: actions-rs/cargo@v1
         with:
-          command: test
+          command: nextest
+          args: --fail-fast
 
   doc:
     name: Run cargo doc
