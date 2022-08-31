@@ -14,7 +14,7 @@ use crate::{
 };
 use frame_support::{assert_noop, assert_ok, assert_storage_noop};
 use proptest::prelude::*;
-use sp_runtime::{traits::Saturating, FixedPointNumber, FixedU128, SaturatedConversion};
+use sp_runtime::{traits::Saturating, FixedPointNumber, FixedU128};
 use traits::vamm::{Vamm as VammTrait, VammConfig};
 
 // ----------------------------------------------------------------------------------------------------

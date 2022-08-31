@@ -6,7 +6,6 @@ use crate::{
 use frame_support::{assert_err, assert_ok};
 use proptest::prelude::*;
 use sp_core::U256;
-use sp_runtime::FixedPointNumber;
 
 // -------------------------------------------------------------------------------------------------
 //                                            Unit Tests

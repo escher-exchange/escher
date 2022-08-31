@@ -10,7 +10,6 @@ use crate::{
 };
 use frame_support::{assert_noop, assert_ok};
 use proptest::prelude::*;
-use sp_runtime::FixedPointNumber;
 use traits::vamm::{AssetType, Vamm as VammTrait};
 
 // -------------------------------------------------------------------------------------------------
