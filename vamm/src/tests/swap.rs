@@ -418,7 +418,7 @@ proptest! {
             vamm_count: 1,
             vamms: vec![(0, vamm_state)]
         }.build().execute_with(|| {
-            run_to_block(now);
+            run_for_seconds(now);
 
             assert_noop!(
                 TestPallet::swap(&swap_config),

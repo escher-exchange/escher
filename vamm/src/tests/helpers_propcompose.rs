@@ -203,7 +203,7 @@ prop_compose! {
 
 prop_compose! {
     pub fn multiple_swaps()(
-        swaps_count in One::one()..RUN_CASES.saturating_pow(2) as usize
+        swaps_count in One::one()..RUN_CASES as usize
     ) (
         swaps in multiple_swap_configs(swaps_count)
     ) -> Vec<SwapConfig<VammId, Balance>> {
