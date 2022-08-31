@@ -67,7 +67,13 @@ jobs:
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@v2
-      - uses: taiki-e/install-action@nextest
+        # We use this `retry` action because the following `nextest` action can
+        # fail to retrieve the pre-build library from the server.
+      - uses: Wandalen/wretry.action@v1.0.25
+        with:
+          action: taiki-e/install-action@nextest
+          atempt_limit: 3
+          attempt_delay: 60000
       - uses: actions-rs/cargo@v1
         with:
           command: nextest
