@@ -2,7 +2,7 @@ use crate::{Config, Error, Event, Pallet, SwapConfigOf, SwapOutputOf, VammMap, V
 use frame_support::{pallet_prelude::*, transactional};
 use helpers::numbers::UnsignedMath;
 use sp_runtime::ArithmeticError;
-use std::cmp::Ordering;
+use sp_std::cmp::Ordering;
 use traits::vamm::{AssetType, Direction, SwapOutput};
 
 // TODO(Cardosaum): Document this struct:
