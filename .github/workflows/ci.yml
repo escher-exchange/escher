@@ -49,19 +49,6 @@ jobs:
           command: clippy
           args: --no-deps
 
-  check:
-    name: Run cargo check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - uses: Swatinem/rust-cache@v2
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-
   test:
     name: Run cargo test
     runs-on: ubuntu-latest
