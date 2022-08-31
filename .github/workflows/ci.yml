@@ -99,7 +99,10 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
-          toolchain: stable
+          # For cache effectiveness, as the toolchain is part of the cache key and setting it to
+          # 'nightly' would throw away the cache every day
+          # https://github.com/Swatinem/rust-cache#cache-effectiveness
+          toolchain: nightly-2022-08-30
           target: wasm32-unknown-unknown
           override: true
           default: true
