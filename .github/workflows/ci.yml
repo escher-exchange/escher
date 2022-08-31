@@ -97,7 +97,7 @@ jobs:
           args: --workspace --no-deps --document-private-items
 
   build:
-    name: Try to build to WASM
+    name: Try building to WASM
     needs: [format, clippy, test, doc]
     runs-on: ubuntu-latest
     env:
