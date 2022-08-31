@@ -106,4 +106,4 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --workspace --release
+          args: --workspace --release --target=wasm32-unknown-unknown
