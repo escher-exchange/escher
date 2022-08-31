@@ -334,7 +334,7 @@ impl<T: FixedPointNumber> TryReciprocal for T {
 //                                             Helpers
 // -------------------------------------------------------------------------------------------------
 
-/// Copied from [`sp_arithmetic::fixed_point`]:
+/// Copied from `https://paritytech.github.io/substrate/master/sp_arithmetic/index.html`
 ///
 /// Data type used as intermediate storage in some computations to avoid overflow.
 struct I129 {
@@ -362,7 +362,7 @@ impl<N: FixedPointOperand> From<N> for I129 {
     }
 }
 
-/// Copied from [`sp_arithmetic::fixed_point`]:
+/// Copied from `https://paritytech.github.io/substrate/master/sp_arithmetic/index.html`
 ///
 /// Transforms an `I129` to `N` if it is possible.
 fn from_i129<N: FixedPointOperand>(n: I129) -> Option<N> {
