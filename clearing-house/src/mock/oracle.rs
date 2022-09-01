@@ -146,10 +146,10 @@ pub mod pallet {
             unimplemented!()
         }
 
-		fn get_twap_for_amount(
-			asset_id: Self::AssetId,
-			amount: Self::Balance,
-		) -> Result<Self::Balance, DispatchError> {
+        fn get_twap_for_amount(
+            asset_id: Self::AssetId,
+            amount: Self::Balance,
+        ) -> Result<Self::Balance, DispatchError> {
             unimplemented!()
         }
     }

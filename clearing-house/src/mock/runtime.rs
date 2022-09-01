@@ -217,7 +217,7 @@ impl mock_vamm::Config for Runtime {
 
 parameter_types! {
     pub const MaxAnswerBound: u32 = 5;
-	pub const TwapWindow: u16 = 3;
+    pub const TwapWindow: u16 = 3;
 }
 
 impl mock_oracle::Config for Runtime {
