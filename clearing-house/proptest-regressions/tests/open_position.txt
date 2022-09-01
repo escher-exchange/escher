@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc c95496efb21fdc3da6bcf2f27170a06fb5a83b1c0872792ce5ee4ddd3f7224e3 # shrinks to direction = Long, new_price = FixedU128(171948599894.634631770039436906), fraction = FixedU128(0.010000000000000000)
+cc 3359bb0808063966c158201478c3571aa4ca14de1077da09fbae3e4534378dd0 # shrinks to direction = Long, new_price = FixedU128(26365747449.096962739852648731), fraction = 1%

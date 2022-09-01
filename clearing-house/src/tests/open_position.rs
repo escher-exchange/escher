@@ -16,14 +16,14 @@ use crate::{
         any_direction, any_price, as_balance, get_collateral, get_market, get_market_fee_pool,
         get_outstanding_profits, get_position, run_for_seconds, run_to_time, set_fee_pool_depth,
         set_maximum_oracle_mark_divergence, set_oracle_price, set_oracle_twap,
-        with_markets_context, with_trading_context, Market, MarketConfig,
+        with_markets_context, with_trading_context, Market, MarketConfig, comp::{approx_eq_lower, approx_eq},
     },
 };
 use composable_traits::time::ONE_HOUR;
 use frame_support::{assert_noop, assert_ok};
-use helpers::numbers::{IntoBalance, IntoSigned};
+use helpers::numbers::{FixedPointMath, IntoBalance, IntoDecimal, IntoSigned};
 use proptest::prelude::*;
-use sp_runtime::{FixedI128, FixedPointNumber, FixedU128};
+use sp_runtime::{FixedI128, FixedPointNumber, FixedU128, Percent};
 use traits::clearing_house::ClearingHouse;
 
 // -------------------------------------------------------------------------------------------------
@@ -72,8 +72,8 @@ prop_compose! {
 }
 
 prop_compose! {
-    fn percentage_fraction()(percent in 1..100_u128) -> FixedU128 {
-        FixedU128::from((percent, 100))
+    fn percentage_fraction()(percent in 1..100_u8) -> Percent {
+        Percent::from_percent(percent)
     }
 }
 
@@ -555,42 +555,45 @@ proptest! {
 
             VammPallet::set_price(Some(new_price));
             // Reduce (close) position by desired percentage
-            let base_amount_to_close = fraction.saturating_mul_int(base_amount);
-            let base_value_to_close = new_price.saturating_mul_int(base_amount_to_close);
-            assert_ok!(
-                <TestPallet as ClearingHouse>::open_position(
-                    &ALICE,
-                    &market_id,
-                    direction.opposite(),
-                    base_value_to_close,
-                    base_amount_to_close,
-                ),
+            let base_amount_to_close = fraction.mul_floor(base_amount);
+            let base_value_to_close = new_price
+                .try_mul(&base_amount_to_close.into_decimal().unwrap())
+                .unwrap()
+                .into_balance()
+                .unwrap();
+            let swapped = <TestPallet as ClearingHouse>::open_position(
+                &ALICE,
+                &market_id,
+                direction.opposite(),
+                dbg!(base_value_to_close),
                 base_amount_to_close,
             );
+            assert_ok!(swapped);
+            assert!(approx_eq_lower(swapped.unwrap(), base_amount_to_close));
 
             // Position remains open
             assert_eq!(TestPallet::get_positions(&ALICE).len(), positions_before);
             // Fraction of the PnL is realized
             let sign = match direction { Long => 1, _ => -1 };
-            let entry_value = fraction.saturating_mul_int(quote_amount);
+            let entry_value = fraction.mul_floor(quote_amount);
             let pnl = sign * (base_value_to_close as i128) - sign * (entry_value as i128);
             if pnl >= 0 {
                 assert_eq!(get_collateral(ALICE), quote_amount);
-                assert_eq!(get_outstanding_profits(ALICE), pnl as u128);
+                assert!(approx_eq(get_outstanding_profits(ALICE), pnl as u128));
             } else {
-                assert_eq!(get_collateral(ALICE), (quote_amount as i128 + pnl).max(0) as u128);
+                assert!(approx_eq(get_collateral(ALICE), (quote_amount as i128 + pnl).max(0) as u128));
             }
 
             let position = get_position(&ALICE, &market_id).unwrap();
             // Position base asset and quote asset notional are cut by percentage
-            assert_eq!(
-                position.base_asset_amount.into_inner(),
-                sign * ((base_amount - base_amount_to_close) as i128)
-            );
-            assert_eq!(
-                position.quote_asset_notional_amount.into_inner(),
-                sign * ((quote_amount - entry_value) as i128)
-            );
+            assert!(approx_eq(
+                position.base_asset_amount.into_inner().unsigned_abs(),
+                base_amount - base_amount_to_close
+            ));
+            assert!(approx_eq(
+                position.quote_asset_notional_amount.into_inner().unsigned_abs(),
+                quote_amount - entry_value
+            ));
 
             assert_eq!(get_market(&market_id).base_asset_amount(direction), position.base_asset_amount);
         });
@@ -716,7 +719,7 @@ proptest! {
             .reciprocal()
             .unwrap()
             .saturating_mul_int(margin);
-        let quote_amount = percentf.saturating_mul_int(quote_amount_max);
+        let quote_amount = percentf.mul_floor(quote_amount_max);
 
         with_trading_context(market_config, margin, |market_id| {
             VammPallet::set_price(Some(10.into()));

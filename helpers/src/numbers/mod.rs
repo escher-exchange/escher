@@ -274,10 +274,10 @@ impl<B, D> IntoBalance<B> for D
 where
     B: Unsigned,
     D: FixedPointNumber,
-    D::Inner: Signed + TryInto<B>,
+    D::Inner: TryInto<B>,
 {
     fn into_balance(self) -> Result<B, ArithmeticError> {
-        self.into_inner().abs().try_into().map_err(|_| Overflow)
+        self.saturating_abs().into_inner().try_into().map_err(|_| Overflow)
     }
 }
 

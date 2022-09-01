@@ -1,0 +1,8 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc ac5e279cae2bbe130f32ada62e74dd0c724d438900360f6ff19e80ae2c01a827 # shrinks to price = Some(FixedU128(5.486386520502375778)), config = SwapConfig { vamm_id: 0, asset: Base, input_amount: 62023039326397949597588840963591958256, direction: Add, output_amount_limit: None }
+cc a54f972af35ec9ea93d85f80241f7f0ab470ea8c7a8df0de99267ba26b91d23a # shrinks to price = Some(FixedU128(2.023959403786682560)), config = SwapConfig { vamm_id: 0, asset: Base, input_amount: 168127071266496064513278698985118413734, direction: Add, output_amount_limit: None }
