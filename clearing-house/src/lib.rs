@@ -46,9 +46,9 @@
 //!
 //! The Clearing House pallet provides implementations for the following traits:
 //!
-//! - [`ClearingHouse`](composable_traits::clearing_house::ClearingHouse): Exposes functionality for
+//! - [`ClearingHouse`](traits::clearing_house::ClearingHouse): Exposes functionality for
 //!   trading of perpetual contracts
-//! - [`Instruments`](composable_traits::clearing_house::Instruments): Exposes functionality for
+//! - [`Instruments`](traits::clearing_house::Instruments): Exposes functionality for
 //!   querying funding-related quantities of synthetic instruments
 //!
 //! ## Interface
