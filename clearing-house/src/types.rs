@@ -7,6 +7,7 @@ use frame_support::{
 use helpers::numbers::{FixedPointMath, IntoBalance, IntoDecimal};
 use num_traits::Zero;
 use sp_runtime::{traits::One, ArithmeticError, DispatchError, FixedPointNumber};
+use sp_std::vec::Vec;
 use traits::vamm::{Direction as VammDirection, Vamm};
 use Direction::{Long, Short};
 

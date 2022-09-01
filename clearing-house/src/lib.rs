@@ -164,10 +164,12 @@ pub mod pallet {
     };
     use codec::FullCodec;
     use composable_traits::{defi::DeFiComposableConfig, oracle::Oracle, time::DurationSeconds};
+    #[cfg(feature = "std")]
+    use frame_support::traits::GenesisBuild;
     use frame_support::{
         pallet_prelude::*,
         storage::bounded_vec::BoundedVec,
-        traits::{fungibles::Inspect, tokens::fungibles::Transfer, GenesisBuild, UnixTime},
+        traits::{fungibles::Inspect, tokens::fungibles::Transfer, UnixTime},
         transactional, Blake2_128Concat, PalletId,
     };
     use frame_system::{ensure_root, ensure_signed, pallet_prelude::OriginFor};
