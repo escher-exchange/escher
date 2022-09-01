@@ -334,7 +334,8 @@ impl<T: FixedPointNumber> TryReciprocal for T {
 //                                             Helpers
 // -------------------------------------------------------------------------------------------------
 
-/// Copied from `https://paritytech.github.io/substrate/master/sp_arithmetic/index.html`
+/// Copied from
+/// [`sp_arithmetic`](https://paritytech.github.io/substrate/master/sp_arithmetic/index.html)
 ///
 /// Data type used as intermediate storage in some computations to avoid overflow.
 struct I129 {
@@ -362,7 +363,8 @@ impl<N: FixedPointOperand> From<N> for I129 {
     }
 }
 
-/// Copied from `https://paritytech.github.io/substrate/master/sp_arithmetic/index.html`
+/// Copied from
+/// [`sp_arithmetic`](https://paritytech.github.io/substrate/master/sp_arithmetic/index.html)
 ///
 /// Transforms an `I129` to `N` if it is possible.
 fn from_i129<N: FixedPointOperand>(n: I129) -> Option<N> {
@@ -380,10 +382,9 @@ fn from_i129<N: FixedPointOperand>(n: I129) -> Option<N> {
     }
 }
 
-/// Alterative to
-/// [`sp_runtime::helpers_128bit::multiply_by_rational_with_rounding`] that does
-/// not modify the quotient of the last division and uses U256 as a backend if
-/// necessary
+/// Alternative to
+/// [`multiply_by_rational_with_rounding`](sp_runtime::helpers_128bit::multiply_by_rational_with_rounding)
+/// that does not modify the quotient of the last division and uses U256 as a backend if necessary
 pub fn multiply_by_rational(
     mut a: u128,
     mut b: u128,
