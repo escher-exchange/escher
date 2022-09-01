@@ -1,0 +1,23 @@
+@startuml Deposit collateral
+!theme mars
+
+actor "Trader" as user
+participant "Clearing\nHouse" as CH
+database "Collateral" as CHS
+collections "Collateral\naccount" as Acc
+
+user -> CH : deposit collateral
+
+CH -> CH : ensure collateral is supported
+
+CH -> CH ++: Deposit collateral
+    CH -> user : transfer to\nClearing House
+    user -> Acc : collateral
+return
+
+CH -[#green]> CHS : get/create collateral account
+
+CH -[#red]> CHS : update collateral amount
+
+?<-o CH : emit event
+@enduml

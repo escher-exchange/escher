@@ -1,7 +1,8 @@
 [workspace]
 members = [
-    "traits",
+    "clearing-house",
     "helpers",
+    "traits",
     "vamm",
 ]
 resolver = "2"
