@@ -12,4 +12,5 @@
 #![deny(clippy::unseparated_literal_suffix)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod clearing_house;
 pub mod vamm;

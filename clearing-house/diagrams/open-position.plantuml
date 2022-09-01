@@ -1,0 +1,78 @@
+@startuml open_position
+!theme mars
+skinparam responseMessageBelowArrow true
+
+title Opening a Position
+
+actor "Trader" as user
+participant "Clearing\nHouse" as ch
+participant "vAMM" as vamm
+participant "Risk\nEngine" as risk
+database "Markets" as mkts
+database "Positions" as positions
+database "Collateral" as accs
+collections "Collateral\naccount" as vault
+
+user -> ch : open position
+
+== Storage updates ==
+
+ch -[#green]> mkts : get ""Market""
+ch -[#green]> positions : get/create position
+
+group settle funding payment for position
+ch -[#red]> accs : update collateral
+end
+
+note right ch
+round trade if it nearly
+closes the position
+end note
+ch -> vamm ++ : swap quote for base asset
+return base asset amount
+
+ch -[#red]> positions : update position
+ch -[#red]> mkts : update open interest
+
+
+opt decreased/closed/reversed position
+ch -[#red]> accs : realize PnL
+end
+
+group charge fee
+ch -[#red]> accs : subtract fee from user's collateral
+ch -[#red]> mkts : add fee to market's fee pool
+end
+
+note right ch
+update funding rate?
+end note
+
+== Validity checks ==
+
+note right ch
+block trade if it's risk
+increasing and pushes
+the mark price far from
+the oracle?
+end note
+
+'RiskEngine
+ch -> risk ++: ""above_initial_margin_ratio""
+    risk -> risk ++: compute\nmargin ratio
+        risk -[#green]> accs : get collateral
+        risk -[#green]> positions : get all user positions
+        risk -[#green]> mkts : get all markets\ninvested
+        risk -> vamm : get prices
+    return
+return ""meets_imr""
+
+note right ch
+allow ""!meets_imr"" if trade
+is risk decreasing
+end note
+
+====
+
+?<-o ch : emit event
+@enduml
