@@ -1,0 +1,59 @@
+[package]
+name = "pallet-vamm"
+version = "0.1.0"
+authors = ["matheus@composable.finance", "Composable Finance Developers"]
+homepage = "https://composable.finance"
+edition = "2021"
+description = "A Virtual Automated Market Maker Substrate Pallet, providing functionality to manage virtual AMMs."
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+traits = { version = "0.0.1", path = "../traits", default-features = false }
+helpers = { version = "0.0.1", path = "../helpers", default-features = false }
+
+frame-benchmarking = { default-features = false, optional = true, git = 'https://github.com/paritytech/substrate.git', branch = 'polkadot-v0.9.28' }
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.28" }
+frame-system = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.28" }
+
+sp-arithmetic = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.28" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.28" }
+sp-io = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.28" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.28" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.28" }
+
+codec = { default-features = false, package = "parity-scale-codec", version = "3.1", features = ["derive"] }
+log = { version = "0.4.14", default-features = false }
+num-integer = { version = "0.1.44", default-features = false }
+scale-info = { version = "2.1", default-features = false, features = ["derive"] }
+serde = { version = '1', optional = true }
+
+[dev-dependencies]
+pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.28" }
+pallet-timestamp = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.28" }
+proptest = "1.0"
+
+[features]
+default = ["std"]
+std = [
+    "frame-benchmarking/std",
+    "frame-support/std",
+    "frame-system/std",
+    "sp-arithmetic/std",
+    "sp-core/std",
+    "sp-io/std",
+    "sp-runtime/std",
+    "sp-std/std",
+    "codec/std",
+    "log/std",
+    "num-integer/std",
+    "scale-info/std",
+    "serde/std",
+]
+
+runtime-benchmarks = [
+  "frame-benchmarking",
+  "frame-support/runtime-benchmarks",
+  "frame-system/runtime-benchmarks",
+]

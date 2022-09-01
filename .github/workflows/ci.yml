@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "**/README.md"
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/README.md"
+
+concurrency:
+  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Run cargo fmt
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          components: rustfmt
+          default: true
+          override: true
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --check
+
+  clippy:
+    name: Run cargo clippy
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --no-deps --all-targets
+
+  test:
+    name: Run cargo nextest
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      NEXTEST_FAILURE_OUTPUT: final
+      NEXTEST_SUCCESS_OUTPUT: never
+      NEXTEST_STATUS_LEVEL: fail
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@v2
+        # We use this `retry` action because the following `nextest` action can
+        # fail to retrieve the pre-build library from the server.
+      - uses: Wandalen/wretry.action@v1.0.25
+        with:
+          action: taiki-e/install-action@nextest
+          attempt_limit: 3
+          attempt_delay: 60000
+      - uses: actions-rs/cargo@v1
+        with:
+          command: nextest
+          args: run --fail-fast
+
+  doc:
+    name: Run cargo doc
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --workspace --no-deps --document-private-items
+
+  build:
+    name: Try building to WASM
+    needs: [format, clippy, test, doc]
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          # For cache effectiveness, as the toolchain is part of the cache key and setting it to
+          # 'nightly' would throw away the cache every day
+          # https://github.com/Swatinem/rust-cache#cache-effectiveness
+          toolchain: nightly-2022-08-30
+          target: wasm32-unknown-unknown
+          override: true
+          default: true
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --workspace --release --no-default-features --target=wasm32-unknown-unknown

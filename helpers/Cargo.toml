@@ -1,0 +1,33 @@
+[package]
+name = "helpers"
+version = "0.0.1"
+edition = "2021"
+
+[package.metadata.docs.rs]
+targets = ["x86_64-unknown-linux-gnu"]
+
+[dependencies]
+num-integer = { version = "0.1.44", default-features = false }
+num-traits = { version = "0.2.14", default-features = false }
+
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.28" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.28" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.28" }
+
+[dev-dependencies]
+proptest = "1.0"
+
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.28" }
+sp-arithmetic = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.28" }
+
+[features]
+default = ["std"]
+std = [
+    "num-integer/std",
+    "num-traits/std",
+    "frame-support/std",
+    "sp-arithmetic/std",
+    "sp-core/std",
+    "sp-runtime/std",
+    "sp-std/std",
+]
