@@ -277,7 +277,10 @@ where
     D::Inner: TryInto<B>,
 {
     fn into_balance(self) -> Result<B, ArithmeticError> {
-        self.saturating_abs().into_inner().try_into().map_err(|_| Overflow)
+        self.saturating_abs()
+            .into_inner()
+            .try_into()
+            .map_err(|_| Overflow)
     }
 }
 
