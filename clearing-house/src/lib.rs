@@ -298,8 +298,10 @@ pub mod pallet {
     type VammConfigOf<T> = <T as Config>::VammConfig;
     type VammIdOf<T> = <T as Config>::VammId;
     type SwapConfigOf<T> = SwapConfig<VammIdOf<T>, BalanceOf<T>>;
-    type MarketConfigOf<T> =
+    #[allow(missing_docs)]
+    pub type MarketConfigOf<T> =
         MarketConfig<AssetIdOf<T>, BalanceOf<T>, DecimalOf<T>, MomentOf<T>, VammConfigOf<T>>;
+    type TradeResultOf<T> = Result<(BalanceOf<T>, DecimalOf<T>, DecimalOf<T>), DispatchError>;
 
     // ---------------------------------------------------------------------------------------------
     //                                     Runtime Storage
@@ -2437,7 +2439,7 @@ pub mod pallet {
             direction: Direction,
             quote_abs_amount_decimal: &T::Decimal,
             base_asset_amount_limit: T::Balance,
-        ) -> Result<(T::Balance, T::Decimal, T::Decimal), DispatchError> {
+        ) -> TradeResultOf<T> {
             let base_swapped = Self::swap_quote(
                 market,
                 direction,
@@ -2477,7 +2479,7 @@ pub mod pallet {
             position_direction: Direction,
             market: &mut Market<T>,
             quote_asset_amount_limit: T::Balance,
-        ) -> Result<(T::Balance, T::Decimal, T::Decimal), DispatchError> {
+        ) -> TradeResultOf<T> {
             // This should always succeed if called by either <Self as ClearingHouse>::open_position
             // or <Self as ClearingHouse>::close_position
             let position = positions
@@ -2498,7 +2500,7 @@ pub mod pallet {
             position_direction: Direction,
             market: &mut Market<T>,
             quote_asset_amount_limit: T::Balance,
-        ) -> Result<(T::Balance, T::Decimal, T::Decimal), DispatchError> {
+        ) -> TradeResultOf<T> {
             let base_swapped = position.base_asset_amount.into_balance()?;
             let quote_swapped = Self::swap_base(
                 market,
@@ -2525,7 +2527,7 @@ pub mod pallet {
             quote_abs_amount_decimal: &T::Decimal,
             base_asset_amount_limit: T::Balance,
             abs_base_asset_value: &T::Decimal,
-        ) -> Result<(T::Balance, T::Decimal, T::Decimal), DispatchError> {
+        ) -> TradeResultOf<T> {
             let base_swapped = Self::swap_quote(
                 market,
                 direction,
