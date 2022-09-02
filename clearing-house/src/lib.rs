@@ -360,8 +360,6 @@ pub mod pallet {
     /// Losses that were realized by traders become available as profits for other traders.
     ///
     /// This is a temporary measure while we're using PvP vAMMs with virtual liquidity.
-    /// TODO(0xangelo): what if traders get liquidated with bad debt? How to account for that when
-    /// updating available profits?
     #[pallet::storage]
     #[pallet::getter(fn available_profits)]
     pub type AvailableProfits<T: Config> = StorageValue<_, T::Balance>;
