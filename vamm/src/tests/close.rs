@@ -4,11 +4,11 @@ use crate::{
     tests::{constants::RUN_CASES, helpers::run_for_seconds, types::Timestamp},
     types::VammState,
 };
-use composable_traits::vamm::Vamm as VammTrait;
 use frame_support::{assert_noop, assert_ok};
 use proptest::prelude::*;
 use rstest::rstest;
 use std::cmp::Ordering::Greater;
+use traits::vamm::Vamm as VammTrait;
 
 // -------------------------------------------------------------------------------------------------
 //                                            Unit Tests
