@@ -1,5 +1,5 @@
 use crate::{
-    mock::{
+    mock::unit::{
         accounts::{ALICE, BOB},
         runtime::{
             Oracle as OraclePallet, Origin, Runtime, System as SystemPallet, TestPallet,
@@ -10,7 +10,7 @@ use crate::{
         Direction::{Long, Short},
         Error, Event,
     },
-    tests::{
+    tests::unit::{
         any_direction, as_balance, get_collateral, get_market, get_market_fee_pool,
         get_outstanding_profits, get_position, run_for_seconds, run_to_time,
         set_maximum_oracle_mark_divergence, set_oracle_price, set_oracle_twap,

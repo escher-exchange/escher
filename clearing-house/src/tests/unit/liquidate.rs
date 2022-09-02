@@ -1,52 +1,51 @@
-use frame_support::{assert_err, assert_noop, assert_ok, traits::tokens::fungibles::Inspect};
-use sp_runtime::FixedI128;
-use traits::clearing_house::ClearingHouse;
-
-use super::{
-    as_balance, comp::approx_eq_lower, multi_market_and_trader_context, run_for_seconds,
-    run_to_time, set_fee_pool_depth, traders_in_one_market_context, MarketConfig,
-};
 use crate::{
-    mock::{
+    mock::unit::{
         accounts::{ALICE, BOB},
-        assets::USDC,
         runtime::{
-            Assets as AssetsPallet, Balance, Origin, Runtime, System as SystemPallet, TestPallet,
-            Vamm as VammPallet,
+            Balance, Origin, Runtime, System as SystemPallet, TestPallet, Vamm as VammPallet,
         },
     },
-    tests::set_oracle_twap,
-    Direction, Error, Event, FullLiquidationPenalty, FullLiquidationPenaltyLiquidatorShare,
-    PartialLiquidationCloseRatio, PartialLiquidationPenalty,
-    PartialLiquidationPenaltyLiquidatorShare,
+    tests::{
+        comp::approx_eq_lower,
+        unit::{
+            as_balance, get_collateral, helpers, multi_market_and_trader_context, run_for_seconds,
+            run_to_time, set_fee_pool_depth, set_oracle_twap, traders_in_one_market_context,
+            MarketConfig,
+        },
+    },
+    Direction, Error, Event,
 };
+
+use frame_support::{assert_err, assert_noop, assert_ok};
+use sp_runtime::{traits::Zero, FixedI128};
+use traits::clearing_house::ClearingHouse;
 
 // -------------------------------------------------------------------------------------------------
 //                                            Helpers
 // -------------------------------------------------------------------------------------------------
 
 fn set_full_liquidation_penalty(decimal: FixedI128) {
-    FullLiquidationPenalty::<Runtime>::set(decimal);
+    helpers::set_full_liquidation_penalty::<Runtime>(decimal)
 }
 
 fn set_liquidator_share_full(decimal: FixedI128) {
-    FullLiquidationPenaltyLiquidatorShare::<Runtime>::set(decimal);
+    helpers::set_liquidator_share_full::<Runtime>(decimal)
 }
 
 fn set_partial_liquidation_penalty(decimal: FixedI128) {
-    PartialLiquidationPenalty::<Runtime>::set(decimal);
+    helpers::set_partial_liquidation_penalty::<Runtime>(decimal)
 }
 
 fn set_partial_liquidation_close(decimal: FixedI128) {
-    PartialLiquidationCloseRatio::<Runtime>::set(decimal);
+    helpers::set_partial_liquidation_close::<Runtime>(decimal)
 }
 
 fn set_liquidator_share_partial(decimal: FixedI128) {
-    PartialLiquidationPenaltyLiquidatorShare::<Runtime>::set(decimal);
+    helpers::set_liquidator_share_partial::<Runtime>(decimal)
 }
 
 fn get_insurance_acc_balance() -> Balance {
-    AssetsPallet::balance(USDC, &TestPallet::get_insurance_account())
+    helpers::get_insurance_acc_balance::<Runtime>()
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -128,7 +127,7 @@ fn can_partially_liquidate_if_below_partial_margin_ratio_by_funding() {
         ..Default::default()
     };
 
-    let margins = vec![(ALICE, as_balance(50)), (BOB, 0)];
+    let margins = vec![(ALICE, as_balance(50))];
     traders_in_one_market_context(config, margins, |market_id| {
         set_partial_liquidation_close((25, 100).into());
         set_partial_liquidation_penalty((25, 1000).into());
@@ -159,6 +158,7 @@ fn can_partially_liquidate_if_below_partial_margin_ratio_by_funding() {
         // - margin = 50 - 44 = 6
 
         assert_ok!(TestPallet::liquidate(Origin::signed(BOB), ALICE));
+        assert!(get_collateral(BOB) > 0);
     });
 }
 
@@ -493,7 +493,7 @@ fn negative_accounts_imply_no_liquidation_fees() {
         ..Default::default()
     };
 
-    let margins = vec![(ALICE, as_balance(100)), (BOB, 0)];
+    let margins = vec![(ALICE, as_balance(100))];
     traders_in_one_market_context(config, margins, |market_id| {
         // 100% of liquidated amount goes to fees
         set_full_liquidation_penalty(1.into());
@@ -524,7 +524,7 @@ fn negative_accounts_imply_no_liquidation_fees() {
         // Alice's entire collateral is seized to pay her PnL
         assert_eq!(TestPallet::get_collateral(&ALICE).unwrap(), 0);
         // Bob doesn't get any fees since there's no collateral left
-        let bob_collateral = TestPallet::get_collateral(&BOB).unwrap();
+        let bob_collateral = TestPallet::get_collateral(&BOB).unwrap_or_else(Zero::zero);
         assert_eq!(bob_collateral, 0);
         // Insurance Fund balance gets nothing for the same reason above
         let insurance_fund = get_insurance_acc_balance();

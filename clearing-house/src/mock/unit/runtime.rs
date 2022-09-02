@@ -1,11 +1,9 @@
-use crate::{
-    self as clearing_house,
-    mock::{
-        accounts::{AccountId, ALICE},
-        assets::{AssetId, PICA},
-        oracle as mock_oracle, vamm as mock_vamm,
-    },
-};
+use crate as clearing_house;
+use crate::mock::assets::{AssetId, PICA};
+use super::accounts::{AccountId, ALICE};
+use super::oracle as mock_oracle;
+use super::vamm as mock_vamm;
+
 use composable_traits::{defi::DeFiComposableConfig, time::DurationSeconds};
 use frame_support::{
     ord_parameter_types, parameter_types,

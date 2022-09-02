@@ -1,7 +1,7 @@
 use crate::{
-    mock::{
+    mock::assets::USDC,
+    mock::unit::{
         accounts::ALICE,
-        assets::USDC,
         runtime::{
             Balance, ExtBuilder, MarketId, Oracle as OraclePallet, Origin, Runtime,
             System as SystemPallet, TestPallet, Vamm as VammPallet,
@@ -13,12 +13,13 @@ use crate::{
         Error, Event,
     },
     tests::{
-        any_direction, any_price, as_balance,
         comp::{approx_eq, approx_eq_lower},
-        get_collateral, get_market, get_market_fee_pool, get_outstanding_profits, get_position,
-        run_for_seconds, run_to_time, set_fee_pool_depth, set_maximum_oracle_mark_divergence,
-        set_oracle_price, set_oracle_twap, with_markets_context, with_trading_context, Market,
-        MarketConfig,
+        unit::{
+            any_direction, any_price, as_balance, get_collateral, get_market, get_market_fee_pool,
+            get_outstanding_profits, get_position, run_for_seconds, run_to_time,
+            set_fee_pool_depth, set_maximum_oracle_mark_divergence, set_oracle_price,
+            set_oracle_twap, with_markets_context, with_trading_context, Market, MarketConfig,
+        },
     },
 };
 use composable_traits::time::ONE_HOUR;

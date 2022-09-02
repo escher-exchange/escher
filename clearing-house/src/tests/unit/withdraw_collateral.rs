@@ -1,19 +1,13 @@
-use frame_support::{
-    assert_noop, assert_ok,
-    traits::fungibles::{Inspect, Unbalanced},
-};
-use traits::clearing_house::ClearingHouse;
-
 use crate::{
-    mock::{
-        accounts::{ALICE, BOB},
-        assets::USDC,
+    mock::assets::USDC,
+    mock::unit::{
+        accounts::{AccountId, ALICE, BOB},
         runtime::{
             Assets as AssetsPallet, Balance, ExtBuilder, Origin, Runtime, System as SystemPallet,
             TestPallet, Vamm as VammPallet,
         },
     },
-    tests::{
+    tests::unit::{
         any_balance, as_balance, get_collateral, get_outstanding_profits, run_for_seconds,
         set_fee_pool_depth, set_oracle_twap, traders_in_one_market_context, with_market_context,
         with_trading_context, MarketConfig,
@@ -21,7 +15,13 @@ use crate::{
     Direction::{Long, Short},
     Error, Event,
 };
+
+use frame_support::{
+    assert_noop, assert_ok,
+    traits::fungibles::{Inspect, Mutate, Unbalanced},
+};
 use proptest::prelude::*;
+use traits::clearing_house::ClearingHouse;
 
 // -------------------------------------------------------------------------------------------------
 //                                          Unit Tests
@@ -130,8 +130,60 @@ fn can_withdraw_realized_profits() {
     });
 }
 
-// TODO(0xangelo): the Insurance Fund should cover losses incurred by traders with realized bad debt
-// when a trader in profit withdraws.
+#[test]
+fn should_cover_bad_debt_via_insurance_fund() {
+    let config = MarketConfig::default();
+    let collateral = as_balance(100);
+    let margins = vec![(ALICE, collateral), (BOB, collateral)];
+
+    traders_in_one_market_context(config, margins, |market_id| {
+        // Make sure no funding is incurred
+        set_oracle_twap(&market_id, 10.into());
+        VammPallet::set_twap(Some(10.into()));
+
+        let initial_insurance_balance = as_balance(1_000);
+        <AssetsPallet as Mutate<AccountId>>::mint_into(
+            USDC,
+            &TestPallet::get_insurance_account(),
+            initial_insurance_balance,
+        );
+
+        VammPallet::set_price(Some(10.into()));
+        let base = as_balance(10);
+        assert_ok!(TestPallet::open_position(
+            Origin::signed(ALICE),
+            market_id,
+            Long,
+            collateral,
+            base,
+        ));
+        assert_ok!(TestPallet::open_position(
+            Origin::signed(BOB),
+            market_id,
+            Short,
+            collateral,
+            base,
+        ));
+
+        // Price moves so that Alice is in profit and BOB has bad debt
+        VammPallet::set_price(Some(21.into()));
+        assert_ok!(TestPallet::close_position(Origin::signed(BOB), market_id));
+        assert_ok!(TestPallet::close_position(Origin::signed(ALICE), market_id));
+
+        assert_eq!(get_collateral(BOB), 0);
+        assert_eq!(get_collateral(ALICE), collateral * 2 + collateral / 10);
+
+        // Alice withdraws her realized profits
+        assert_ok!(TestPallet::withdraw_collateral(
+            Origin::signed(ALICE),
+            collateral * 2 + collateral / 10
+        ));
+        assert_eq!(
+            AssetsPallet::balance(USDC, &TestPallet::get_insurance_account()),
+            initial_insurance_balance - collateral / 10
+        );
+    });
+}
 
 #[test]
 fn can_withdraw_unrealized_funding_payments_by_settling_them() {

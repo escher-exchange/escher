@@ -1,13 +1,13 @@
 use crate::{
-    mock::{
+    mock::assets::USDC,
+    mock::unit::{
         accounts::{AccountId, ALICE, BOB},
-        assets::USDC,
         runtime::{
             Assets as AssetsPallet, ExtBuilder, MarketId, Origin, Runtime, System as SystemPallet,
             TestPallet, Vamm as VammPallet, MINIMUM_PERIOD_SECONDS,
         },
     },
-    tests::{
+    tests::unit::{
         any_balance, any_price, as_balance, get_market, get_market_fee_pool, run_for_seconds,
         run_to_time, set_fee_pool_depth, set_maximum_oracle_mark_divergence,
         set_maximum_twap_divergence, set_oracle_price, set_oracle_twap,
