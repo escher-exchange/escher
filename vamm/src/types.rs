@@ -1,6 +1,6 @@
 use frame_support::pallet_prelude::*;
 use sp_core::U256;
-use std::cmp::Ordering::Greater;
+use sp_std::cmp::Ordering::Greater;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
