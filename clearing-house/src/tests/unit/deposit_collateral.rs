@@ -1,10 +1,12 @@
 use crate::{
-    mock::assets::{PICA, USDC},
-    mock::unit::{
-        accounts::{AccountId, ALICE},
-        runtime::{
-            Assets as AssetsPallet, Balance, ExtBuilder, Origin, Runtime, System as SystemPallet,
-            TestPallet,
+    mock::{
+        assets::{PICA, USDC},
+        unit::{
+            accounts::{AccountId, ALICE},
+            runtime::{
+                Assets as AssetsPallet, Balance, ExtBuilder, Origin, Runtime,
+                System as SystemPallet, TestPallet,
+            },
         },
     },
     pallet::{Collateral, Error, Event},

@@ -1,15 +1,17 @@
 use super::helpers;
 use crate::{
-    mock::assets::{AssetId, DOT, USDC},
-    mock::unit::{
-        self as mock,
-        accounts::{AccountId, ALICE},
-        runtime::{
-            Assets as AssetsPallet, Balance, Decimal, ExtBuilder, MarketId, Oracle as OraclePallet,
-            Origin, Runtime, System as SystemPallet, TestPallet, Timestamp as TimestampPallet,
-            Vamm as VammPallet, VammId,
+    mock::{
+        assets::{AssetId, DOT, USDC},
+        unit::{
+            self as mock,
+            accounts::{AccountId, ALICE},
+            runtime::{
+                Assets as AssetsPallet, Balance, Decimal, ExtBuilder, MarketId,
+                Oracle as OraclePallet, Origin, Runtime, System as SystemPallet, TestPallet,
+                Timestamp as TimestampPallet, Vamm as VammPallet, VammId,
+            },
+            vamm::VammConfig,
         },
-        vamm::VammConfig,
     },
     Direction, Market as MarketGeneric, MarketConfig as MarketConfigGeneric, Markets,
     MaxTwapDivergence,

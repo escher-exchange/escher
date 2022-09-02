@@ -1,10 +1,12 @@
 use crate::{
-    mock::assets::USDC,
-    mock::unit::{
-        accounts::{AccountId, ALICE, BOB},
-        runtime::{
-            Assets as AssetsPallet, ExtBuilder, MarketId, Origin, Runtime, System as SystemPallet,
-            TestPallet, Vamm as VammPallet, MINIMUM_PERIOD_SECONDS,
+    mock::{
+        assets::USDC,
+        unit::{
+            accounts::{AccountId, ALICE, BOB},
+            runtime::{
+                Assets as AssetsPallet, ExtBuilder, MarketId, Origin, Runtime,
+                System as SystemPallet, TestPallet, Vamm as VammPallet, MINIMUM_PERIOD_SECONDS,
+            },
         },
     },
     tests::unit::{

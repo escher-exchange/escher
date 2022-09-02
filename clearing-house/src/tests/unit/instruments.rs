@@ -1,8 +1,10 @@
 use crate::{
-    mock::assets::AssetId,
-    mock::unit::{
-        self as mock,
-        runtime::{ExtBuilder, MarketId, Runtime, TestPallet, VammId},
+    mock::{
+        assets::AssetId,
+        unit::{
+            self as mock,
+            runtime::{ExtBuilder, MarketId, Runtime, TestPallet, VammId},
+        },
     },
     tests::unit::{as_inner, bounded_decimal, zero_to_one_open_interval, Market, Position},
     Direction,
