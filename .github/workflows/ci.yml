@@ -97,7 +97,7 @@ jobs:
           args: --workspace --no-deps --document-private-items
 
   build:
-    name: Try building to WASM
+    name: Run cargo build
     needs: [format, clippy, test, doc]
     runs-on: ubuntu-latest
     env:
