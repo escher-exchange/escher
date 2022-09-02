@@ -57,7 +57,7 @@ pub type MarketId = u64;
 pub type ReserveIdentifier = [u8; 8]; // copied from 'frame/assets/src/mocks.rs'
 pub type UnsignedDecimal = FixedU128;
 pub type VammId = u64;
-pub type Moment = u64;
+pub type Moment = DurationSeconds;
 
 // ----------------------------------------------------------------------------------------------------
 //                                                FRAME System
@@ -124,7 +124,7 @@ impl governance_registry::Config for Runtime {
 //                                                 Timestamp
 // ----------------------------------------------------------------------------------------------------
 
-pub const MINIMUM_PERIOD_SECONDS: DurationSeconds = 5;
+pub const MINIMUM_PERIOD_SECONDS: Moment = 5;
 
 parameter_types! {
     pub const MinimumPeriod: u64 = MINIMUM_PERIOD_SECONDS;
@@ -249,6 +249,7 @@ impl clearing_house::Config for Runtime {
     type Integer = Integer;
     type MarketId = MarketId;
     type MaxPositions = MaxPositions;
+    type Moment = Moment;
     type Oracle = Oracle;
     type PalletId = TestPalletId;
     type UnixTime = Timestamp;

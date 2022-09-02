@@ -1,5 +1,5 @@
 use crate::Config;
-use composable_traits::{oracle::Oracle, time::DurationSeconds};
+use composable_traits::oracle::Oracle;
 use frame_support::{
     pallet_prelude::{Decode, Encode, MaxEncodedLen, TypeInfo},
     traits::UnixTime,
@@ -98,7 +98,7 @@ pub struct Market<T: Config> {
     /// a trade if it results in closing an existing position.
     pub minimum_trade_size: T::Decimal,
     /// The time span between each funding rate update.
-    pub funding_frequency: DurationSeconds,
+    pub funding_frequency: T::Moment,
     /// Period of time over which funding (the difference between mark and index prices) gets
     /// paid.
     ///
@@ -109,7 +109,7 @@ pub struct Market<T: Config> {
     ///
     /// Setting the funding period too short may cause nobody to trade the perpetual because
     /// there’s too punitive of a price to pay in the case the funding rate flips sign.
-    pub funding_period: DurationSeconds,
+    pub funding_period: T::Moment,
     /// Taker fee, in basis points, applied to all market orders.
     pub taker_fee: T::Balance,
     /// The reference time span used for weighting the EMA updates for the Oracle and Vamm TWAPs.
@@ -126,7 +126,7 @@ pub struct Market<T: Config> {
     /// ```
     /// In the example above, the current price is given a weight of `since_last` and the last
     /// TWAP, `from_start`. The new TWAP is then the weighted average of the two.
-    pub twap_period: DurationSeconds,
+    pub twap_period: T::Moment,
     // ---------------------------------------------------------------------------------------------
     //                                         Dynamic
     // ---------------------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ pub struct Market<T: Config> {
     /// compute parameter adjustment costs and funding payments from/to the Clearing House.
     pub base_asset_amount_short: T::Decimal,
     /// Timestamp from which the market is considered closed.
-    pub closed_ts: Option<DurationSeconds>,
+    pub closed_ts: Option<T::Moment>,
     /// The latest cumulative funding rate for long positions in this market. Must be updated
     /// periodically.
     pub cum_funding_rate_long: T::Decimal,
@@ -145,7 +145,7 @@ pub struct Market<T: Config> {
     /// periodically.
     pub cum_funding_rate_short: T::Decimal,
     /// The timestamp for the latest funding rate update.
-    pub funding_rate_ts: DurationSeconds,
+    pub funding_rate_ts: T::Moment,
     /// Last oracle price used to update the index TWAP. This has likely gone through
     /// preprocessing, i.e., is not the actual oracle price reported at the time.
     pub last_oracle_price: T::Decimal,
@@ -153,13 +153,13 @@ pub struct Market<T: Config> {
     pub last_oracle_twap: T::Decimal,
     /// The timestamp for [`last_oracle_twap`](Market::last_oracle_twap) and
     /// [`last_oracle_ts`](Market::last_oracle_ts).
-    pub last_oracle_ts: DurationSeconds,
+    pub last_oracle_ts: T::Moment,
 }
 
 impl<T: Config> Market<T> {
     /// Construct new market from `MarketConfig`.
     pub fn new(
-        config: MarketConfig<T::MayBeAssetId, T::Balance, T::Decimal, T::VammConfig>,
+        config: MarketConfig<T::MayBeAssetId, T::Balance, T::Decimal, T::Moment, T::VammConfig>,
     ) -> Result<Self, DispatchError> {
         // TODO(0xangelo): should we consider querying the oracle's TWAP here so that the initial
         // price is not one that's too volatile?
@@ -180,10 +180,10 @@ impl<T: Config> Market<T> {
             closed_ts: None,
             cum_funding_rate_long: Zero::zero(),
             cum_funding_rate_short: Zero::zero(),
-            funding_rate_ts: T::UnixTime::now().as_secs(),
+            funding_rate_ts: T::UnixTime::now().as_secs().into(),
             last_oracle_price: oracle_price,
             last_oracle_twap: oracle_price,
-            last_oracle_ts: T::UnixTime::now().as_secs(),
+            last_oracle_ts: T::UnixTime::now().as_secs().into(),
         })
     }
 
@@ -259,7 +259,7 @@ impl<T: Config> Market<T> {
     }
 
     /// Returns the current market status w.r.t. closure.
-    pub fn shutdown_status(&self, now: DurationSeconds) -> ShutdownStatus {
+    pub fn shutdown_status(&self, now: T::Moment) -> ShutdownStatus {
         if let Some(closed_ts) = self.closed_ts {
             if now >= closed_ts {
                 ShutdownStatus::Closed
@@ -292,7 +292,7 @@ pub struct OracleStatus<T: Config> {
 
 /// Specifications for market creation
 #[derive(Encode, Decode, PartialEq, Eq, Clone, Debug, TypeInfo)]
-pub struct MarketConfig<AssetId, Balance, Decimal, VammConfig> {
+pub struct MarketConfig<AssetId, Balance, Decimal, Moment, VammConfig> {
     /// Asset id of the underlying for the derivatives market.
     pub asset: AssetId,
     /// Configuration for creating and initializing the vAMM for price discovery.
@@ -307,14 +307,14 @@ pub struct MarketConfig<AssetId, Balance, Decimal, VammConfig> {
     /// a trade if it results in closing an existing position.
     pub minimum_trade_size: Decimal,
     /// Time span between each funding rate update.
-    pub funding_frequency: DurationSeconds,
+    pub funding_frequency: Moment,
     /// Period of time over which funding (the difference between mark and index prices) gets
     /// paid.
-    pub funding_period: DurationSeconds,
+    pub funding_period: Moment,
     /// Taker fee, in basis points, applied to all market orders.
     pub taker_fee: Balance,
     /// The reference time span used for weighting the EMA updates for the Oracle and Vamm TWAPs.
-    pub twap_period: DurationSeconds,
+    pub twap_period: Moment,
 }
 
 // -------------------------------------------------------------------------------------------------

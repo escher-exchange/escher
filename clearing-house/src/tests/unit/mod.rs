@@ -6,7 +6,7 @@ use crate::{
             self as mock,
             accounts::{AccountId, ALICE},
             runtime::{
-                Assets as AssetsPallet, Balance, Decimal, ExtBuilder, MarketId,
+                Assets as AssetsPallet, Balance, Decimal, ExtBuilder, MarketId, Moment,
                 Oracle as OraclePallet, Origin, Runtime, System as SystemPallet, TestPallet,
                 Timestamp as TimestampPallet, Vamm as VammPallet, VammId,
             },
@@ -278,7 +278,7 @@ fn multi_market_and_trader_context<R>(
 //                                          Default Inputs
 // ----------------------------------------------------------------------------------------------------
 
-impl Default for MarketConfigGeneric<AssetId, Balance, Decimal, VammConfig> {
+impl Default for MarketConfigGeneric<AssetId, Balance, Decimal, Moment, VammConfig> {
     fn default() -> Self {
         Self {
             asset: DOT,
@@ -300,7 +300,14 @@ impl Default for MarketConfigGeneric<AssetId, Balance, Decimal, VammConfig> {
 
 impl Default for MarketGeneric<Runtime> {
     fn default() -> Self {
-        Self::new(MarketConfigGeneric::<AssetId, Balance, Decimal, VammConfig>::default()).unwrap()
+        Self::new(MarketConfigGeneric::<
+            AssetId,
+            Balance,
+            Decimal,
+            Moment,
+            VammConfig,
+        >::default())
+        .unwrap()
     }
 }
 

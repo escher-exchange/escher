@@ -159,8 +159,9 @@ pub mod pallet {
         },
         weights::WeightInfo,
     };
-    use codec::FullCodec;
-    use composable_traits::{defi::DeFiComposableConfig, oracle::Oracle, time::DurationSeconds};
+    use codec::{Codec, FullCodec};
+    use composable_traits::{defi::DeFiComposableConfig, oracle::Oracle};
+    use divrem::RemEuclid;
     #[cfg(feature = "std")]
     use frame_support::traits::GenesisBuild;
     use frame_support::{
@@ -239,6 +240,20 @@ pub mod pallet {
         /// The maximum number of open positions (one for each market) for a trader.
         type MaxPositions: Get<u32>;
 
+        /// Used for keeping track of time.
+        type Moment: Clone
+            + Codec
+            + Debug
+            + FixedPointOperand
+            + From<u64>
+            + MaxEncodedLen
+            + One
+            + Ord
+            + RemEuclid<Output = Self::Moment>
+            + TypeInfo
+            + UnsignedMath
+            + Zero;
+
         /// Price feed (in USDT) Oracle pallet implementation.
         type Oracle: Oracle<AssetId = Self::MayBeAssetId, Balance = Self::Balance>;
 
@@ -253,7 +268,7 @@ pub mod pallet {
         /// Virtual Automated Market Maker pallet implementation.
         type Vamm: Vamm<
             Balance = Self::Balance,
-            Moment = DurationSeconds,
+            Moment = Self::Moment,
             SwapConfig = SwapConfig<Self::VammId, Self::Balance>,
             VammConfig = Self::VammConfig,
             VammId = Self::VammId,
@@ -277,11 +292,12 @@ pub mod pallet {
     type AssetIdOf<T> = <T as DeFiComposableConfig>::MayBeAssetId;
     type BalanceOf<T> = <T as DeFiComposableConfig>::Balance;
     type DecimalOf<T> = <T as Config>::Decimal;
+    type MomentOf<T> = <T as Config>::Moment;
     type VammConfigOf<T> = <T as Config>::VammConfig;
     type VammIdOf<T> = <T as Config>::VammId;
     type SwapConfigOf<T> = SwapConfig<VammIdOf<T>, BalanceOf<T>>;
     type MarketConfigOf<T> =
-        MarketConfig<AssetIdOf<T>, BalanceOf<T>, DecimalOf<T>, VammConfigOf<T>>;
+        MarketConfig<AssetIdOf<T>, BalanceOf<T>, DecimalOf<T>, MomentOf<T>, VammConfigOf<T>>;
 
     // ---------------------------------------------------------------------------------------------
     //                                     Runtime Storage
@@ -429,7 +445,7 @@ pub mod pallet {
             /// Market identifier.
             market_id: T::MarketId,
             /// Close time.
-            when: DurationSeconds,
+            when: T::Moment,
         },
         /// Margin successfully added to account.
         MarginAdded {
@@ -463,7 +479,7 @@ pub mod pallet {
             /// Id of the market.
             market: T::MarketId,
             /// Timestamp of the funding rate update.
-            time: DurationSeconds,
+            time: T::Moment,
         },
         /// Account fully liquidated.
         FullLiquidation {
@@ -1014,7 +1030,7 @@ pub mod pallet {
         pub fn close_market(
             origin: OriginFor<T>,
             market_id: T::MarketId,
-            when: DurationSeconds,
+            when: T::Moment,
         ) -> DispatchResult {
             ensure_root(origin)?;
             <Self as ClearingHouse>::close_market(market_id, when)?;
@@ -1075,7 +1091,7 @@ pub mod pallet {
         type Direction = Direction;
         type MarketId = T::MarketId;
         type MarketConfig = MarketConfigOf<T>;
-        type Timestamp = DurationSeconds;
+        type Timestamp = T::Moment;
 
         fn deposit_collateral(
             account_id: &Self::AccountId,
@@ -1191,11 +1207,14 @@ pub mod pallet {
                 Error::<T>::NoPriceFeedForAsset
             );
             ensure!(
-                config.funding_period > 0 && config.funding_frequency > 0,
+                config.funding_period > Zero::zero() && config.funding_frequency > Zero::zero(),
                 Error::<T>::ZeroLengthFundingPeriodOrFrequency
             );
             ensure!(
-                config.funding_period.rem_euclid(config.funding_frequency) == 0,
+                config
+                    .funding_period
+                    .rem_euclid(config.funding_frequency)
+                    .is_zero(),
                 Error::<T>::FundingPeriodNotMultipleOfFrequency
             );
             ensure!(
@@ -1436,7 +1455,7 @@ pub mod pallet {
         #[transactional]
         fn update_funding(market_id: &Self::MarketId) -> Result<(), DispatchError> {
             let mut market = Self::try_get_market(market_id)?;
-            let now = T::UnixTime::now().as_secs();
+            let now = Self::get_current_time();
             Self::ensure_market_is_open_at(&market, now)?;
 
             ensure!(
@@ -1515,7 +1534,7 @@ pub mod pallet {
             // FIXME(0xangelo): uncomment this once traits::vamm::Vamm is updated
             // T::Vamm::close(market.vamm_id, when)?;
 
-            let now = T::UnixTime::now().as_secs();
+            let now = Self::get_current_time();
             ensure!(when > now, Error::<T>::CloseTimeMustBeAfterCurrentTime);
             market.closed_ts = Some(when);
 
@@ -1531,7 +1550,7 @@ pub mod pallet {
             let market = Self::try_get_market(&market_id)?;
             ensure!(
                 matches!(
-                    market.shutdown_status(T::UnixTime::now().as_secs()),
+                    market.shutdown_status(Self::get_current_time()),
                     ShutdownStatus::Closed
                 ),
                 Error::<T>::MarketNotClosed
@@ -1631,7 +1650,7 @@ pub mod pallet {
                 return Ok(())
             }
 
-            let now = T::UnixTime::now().as_secs();
+            let now = Self::get_current_time();
             if Self::is_funding_update_time(market, now)? {
                 Self::do_update_funding(market_id, market, now)?;
             }
@@ -1642,7 +1661,7 @@ pub mod pallet {
         fn do_update_funding(
             market_id: &T::MarketId,
             market: &mut Market<T>,
-            now: DurationSeconds,
+            now: T::Moment,
         ) -> Result<(), DispatchError> {
             // Pay funding
             // net position sign | funding rate sign | transfer
@@ -1945,13 +1964,13 @@ pub mod pallet {
     // Helper functions - validity checks
     impl<T: Config> Pallet<T> {
         fn ensure_market_is_open_to_new_orders(market: &Market<T>) -> Result<(), DispatchError> {
-            let now = T::UnixTime::now().as_secs();
+            let now = Self::get_current_time();
             Self::ensure_market_is_open_at(market, now)
         }
 
         fn ensure_market_is_open_at(
             market: &Market<T>,
-            when: DurationSeconds,
+            when: T::Moment,
         ) -> Result<(), DispatchError> {
             match market.shutdown_status(when) {
                 ShutdownStatus::Open => Ok(()),
@@ -1961,7 +1980,7 @@ pub mod pallet {
         }
 
         fn ensure_market_is_open(market: &Market<T>) -> Result<(), DispatchError> {
-            let now = T::UnixTime::now().as_secs();
+            let now = Self::get_current_time();
             match market.shutdown_status(now) {
                 ShutdownStatus::Closed => Err(Error::<T>::MarketClosed.into()),
                 _ => Ok(()),
@@ -2022,22 +2041,24 @@ pub mod pallet {
 
         fn is_funding_update_time(
             market: &Market<T>,
-            now: DurationSeconds,
+            now: T::Moment,
         ) -> Result<bool, DispatchError> {
             let funding_frequency = market.funding_frequency;
             let mut next_update_wait = funding_frequency;
 
-            if funding_frequency > 0 {
+            if !funding_frequency.is_zero() {
                 // Usual update times are at multiples of funding frequency
                 // Safe since funding frequency is positive
                 let last_update_delay = market.funding_rate_ts.rem_euclid(funding_frequency);
 
-                if last_update_delay > 0 {
-                    let max_delay_for_not_skipping = funding_frequency.try_div(&3)?;
+                if !last_update_delay.is_zero() {
+                    let max_delay_for_not_skipping = funding_frequency.try_div(&3.into())?;
 
                     next_update_wait = if last_update_delay > max_delay_for_not_skipping {
                         // Skip update at the next multiple of funding frequency
-                        funding_frequency.try_mul(&2)?.try_sub(&last_update_delay)?
+                        funding_frequency
+                            .try_mul(&2.into())?
+                            .try_sub(&last_update_delay)?
                     } else {
                         // Allow update at the next multiple of funding frequency
                         funding_frequency.try_sub(&last_update_delay)?
@@ -2079,6 +2100,10 @@ pub mod pallet {
 
     // Helper functions - low-level functionality
     impl<T: Config> Pallet<T> {
+        fn get_current_time() -> T::Moment {
+            T::UnixTime::now().as_secs().into()
+        }
+
         fn try_get_market(market_id: &T::MarketId) -> Result<Market<T>, DispatchError> {
             Markets::<T>::get(market_id).ok_or_else(|| Error::<T>::MarketIdNotFound.into())
         }
@@ -2608,9 +2633,12 @@ pub mod pallet {
                 //   TWAP one (may happen due to oracle delays). Maybe combine the two as a
                 //   surrogate for the last TWAP?
 
-                let now = T::UnixTime::now().as_secs();
-                let since_last = now.saturating_sub(market.last_oracle_ts).max(1);
-                let from_start = market.twap_period.saturating_sub(since_last).max(1);
+                let now = Self::get_current_time();
+                let since_last = now.saturating_sub(market.last_oracle_ts).max(One::one());
+                let from_start = market
+                    .twap_period
+                    .saturating_sub(since_last)
+                    .max(One::one());
                 let new_twap = numbers::weighted_average(
                     &oracle_price,
                     &last_oracle_twap,

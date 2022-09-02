@@ -197,7 +197,7 @@ impl Default for MarketConfig {
 //                                      Types & Constants
 // -------------------------------------------------------------------------------------------------
 
-pub type MarketConfig = MarketConfigGeneric<AssetId, Balance, Decimal, VammConfig>;
+pub type MarketConfig = MarketConfigGeneric<AssetId, Balance, Decimal, Moment, VammConfig>;
 pub type VammConfig = VammConfigGeneric<Balance, Moment>;
 
 // Must be strictly greater than StalePrice
