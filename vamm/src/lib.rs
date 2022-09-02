@@ -66,6 +66,9 @@
 //! the swap were in fact executed.
 //! * [`update_twap`](pallet/struct.Pallet.html#method.update_twap): Updates the
 //! time weighted average price of the desired asset.
+//! * [`close`](pallet/struct.Pallet.html#method.close): Schedules a closing
+//! date for the desired vamm, after which the vamm will be considered closed
+//! and all operations in it will be halted.
 //!
 //! ### Runtime Storage Objects
 //!
@@ -345,6 +348,15 @@ pub mod pallet {
             /// asset`](VammState::base_asset_reserves) in the specified Vamm.
             base_twap: T::Decimal,
         },
+        /// Emitted after a successful call to the [`close`](Pallet::close)
+        /// function.
+        Closed {
+            /// The identifier for the Vamm where the operation took place.
+            vamm_id: T::VammId,
+            /// The timestamp where the closing process will take place. After
+            /// reaching the specified time the vamm will be considered *closed*.
+            closing_time: T::Moment,
+        },
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -396,6 +408,7 @@ pub mod pallet {
         /// * [`Pallet::swap`]
         /// * [`Pallet::swap_simulation`]
         /// * [`Pallet::move_price`]
+        /// * [`Pallet::close`]
         /// * [`Pallet::get_vamm_state`]
         VammDoesNotExist,
         /// Tried to retrieve a Vamm but the function failed.
@@ -408,6 +421,7 @@ pub mod pallet {
         /// * [`Pallet::swap`]
         /// * [`Pallet::swap_simulation`]
         /// * [`Pallet::move_price`]
+        /// * [`Pallet::close`]
         /// * [`Pallet::do_swap`]
         /// * [`Pallet::get_vamm_state`]
         FailToRetrieveVamm,
@@ -443,9 +457,19 @@ pub mod pallet {
         /// * [`Pallet::swap`]
         /// * [`Pallet::swap_simulation`]
         /// * [`Pallet::move_price`]
+        /// * [`Pallet::close`]
         /// * [`Pallet::sanity_check_before_swap`]
         /// * [`Pallet::sanity_check_before_update_twap`]
+        /// * [`Pallet::sanity_check_before_close`]
         VammIsClosed,
+        /// Tried to perform operation against a closing Vamm, but this specific
+        /// operation is not allowed.
+        ///
+        /// ## Occurrences
+        ///
+        /// * [`Pallet::close`]
+        /// * [`Pallet::sanity_check_before_close`]
+        VammIsClosing,
         /// Tried to swap assets but the amount returned was less than the minimum expected.
         ///
         /// ## Occurrences
@@ -525,6 +549,14 @@ pub mod pallet {
         ///
         /// * [`Pallet::create`]
         FundingPeriodTooSmall,
+        /// Tried to close a vamm with a timestamp that is in the past. To close
+        /// a vamm successfully it's required to specify a time in the *future*.
+        ///
+        /// ## Occurrences
+        ///
+        /// * [`Pallet::close`]
+        /// * [`Pallet::sanity_check_before_close`]
+        ClosingDateIsInThePast,
     }
 
     // ----------------------------------------------------------------------------------------------------
@@ -1112,6 +1144,78 @@ pub mod pallet {
 
         fn get_settlement_price(_vamm_id: Self::VammId) -> Result<Self::Decimal, DispatchError> {
             todo!()
+        }
+
+        /// Schedules a closing date for the desired vamm, after which the vamm
+        /// will be considered closed and all operations in it will be halted.
+        ///
+        /// # Overview
+        /// In order for the caller to close a vamm it has to send the request
+        /// to the Vamm Pallet, which will perform the necessary checks and, if
+        /// all the requirements are satisfied, a closing date will be set to
+        /// the specified vamm. The vamm will be considered closed when the
+        /// current time reaches the specified time in this function call.
+        ///
+        /// ![](https://www.plantuml.com/plantuml/svg/BSsz3G8n343XdYbW0EAUwZP1nZ59fDWv-GSO7uIkUdhLjtcWHSeyNORIpCffyzmZThy16BvB6z7paSv6IuCr2Yq1TkfiL_vGHsryF0WEXHUAG1tO3CNXcKenbjvfBkUoJzI_jx7MNxy0)
+        ///
+        /// ## Parameters:
+        /// * [`vamm_id`](Config::VammId): The ID of the desired vamm to close.
+        /// * [`closing_time`](Config::Moment): The timestamp after which the
+        /// vamm will be considered closed.
+        ///
+        /// ## Returns
+        /// This function returns an empty `Ok(())` on success.
+        ///
+        /// ## Assumptions or Requirements
+        /// In order to close a vamm we need to ensure that some properties hold:
+        ///
+        /// * The requested [`VammId`](Config::VammId) must exist.
+        /// * The requested vamm must be open. (See the [`closed`](VammState)
+        /// field for more information).
+        /// * The requested [`closing_time`](Config::Moment) must be *strictly*
+        /// in the future.
+        ///
+        /// ## Emits
+        /// * [`Closed`](Event::<T>::Closed)
+        ///
+        /// ## State Changes
+        /// Updates:
+        ///
+        /// * [`VammMap`], modifying the [`closed`](VammState::closed) field.
+        ///
+        /// ## Errors
+        /// * [`Error::<T>::VammDoesNotExist`]
+        /// * [`Error::<T>::VammIsClosed`]
+        /// * [`Error::<T>::VammIsClosing`]
+        /// * [`Error::<T>::FailToRetrieveVamm`]
+        /// * [`Error::<T>::ClosingDateIsInThePast`]
+        ///
+        /// # Runtime
+        /// `O(1)`
+        #[transactional]
+        fn close(vamm_id: T::VammId, closing_time: T::Moment) -> Result<(), DispatchError> {
+            // Get Vamm state.
+            let vamm_state = Self::get_vamm_state(&vamm_id)?;
+
+            // Sanity checks.
+            Self::sanity_check_before_close(&vamm_state, &closing_time)?;
+
+            // Update runtime storage.
+            VammMap::<T>::try_mutate(&vamm_id, |vamm| match vamm {
+                Some(v) => {
+                    v.closed = Some(closing_time);
+                    Ok(())
+                },
+                None => Err(Error::<T>::FailToRetrieveVamm),
+            })?;
+
+            // Emit event.
+            Self::deposit_event(Event::<T>::Closed {
+                vamm_id,
+                closing_time,
+            });
+
+            Ok(())
         }
     }
 }
