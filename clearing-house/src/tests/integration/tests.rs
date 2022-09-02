@@ -135,13 +135,13 @@ fn get_insurance_acc_balance() -> Balance {
     helpers::get_insurance_acc_balance::<Runtime>()
 }
 
-fn get_position(account_id: &AccountId, market_id: &MarketId) -> Position<Runtime> {
-    helpers::get_position::<Runtime>(account_id, market_id).unwrap()
+fn get_position(account_id: &AccountId, market_id: &MarketId) -> Option<Position<Runtime>> {
+    helpers::get_position::<Runtime>(account_id, market_id)
 }
 
 fn get_unrealized_pnl(account_id: &AccountId, market_id: &MarketId) -> Decimal {
     let market = get_market(market_id);
-    let position = get_position(account_id, market_id);
+    let position = get_position(account_id, market_id).unwrap();
     let (_, pnl) = TestPallet::abs_position_notional_and_pnl(
         &market,
         &position,
@@ -1195,4 +1195,61 @@ mod close_market {
             );
         })
     }
+}
+
+// -------------------------------------------------------------------------------------------------
+//                                        Settle Position
+// -------------------------------------------------------------------------------------------------
+
+#[test]
+fn should_handle_one_long() {
+    ExtBuilder {
+        native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
+        balances: vec![(ALICE, USDC, UNIT * 100)],
+        ..Default::default()
+    }
+    .build()
+    .execute_with(|| {
+        let asset_id = DOT;
+        set_oracle_for(asset_id, 1_000);
+
+        assert_ok!(TestPallet::create_market(
+            Origin::signed(ALICE),
+            MarketConfig::default()
+        ));
+
+        assert_ok!(TestPallet::deposit_collateral(
+            Origin::signed(ALICE),
+            USDC,
+            UNIT * 100
+        ));
+
+        let market_id = Zero::zero();
+        assert_ok!(TestPallet::open_position(
+            Origin::signed(ALICE),
+            market_id,
+            Long,
+            UNIT * 100,
+            0
+        ));
+
+        let now = get_time_now();
+        assert_ok!(TestPallet::close_market(
+            Origin::root(),
+            market_id,
+            now + 12
+        ));
+
+        advance_blocks_by(1, 12);
+
+        assert_ok!(TestPallet::settle_position(
+            Origin::signed(ALICE),
+            market_id
+        ));
+
+        // Alice's collateral remains unchanged
+        assert_eq!(get_collateral(&ALICE), UNIT * 100);
+        assert_eq!(get_outstanding_profits(&ALICE), 0);
+        assert!(get_position(&ALICE, &market_id).is_none());
+    })
 }
