@@ -567,7 +567,7 @@ proptest! {
                 &ALICE,
                 &market_id,
                 direction.opposite(),
-                dbg!(base_value_to_close),
+                base_value_to_close,
                 base_amount_to_close,
             );
             assert_ok!(swapped);
