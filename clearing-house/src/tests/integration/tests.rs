@@ -24,7 +24,8 @@ use traits::vamm::{AssetType, Vamm as VammTrait, VammConfig as VammConfigGeneric
 impl Default for ExtBuilder {
     fn default() -> Self {
         Self {
-            native_balances: vec![],
+            // For setting up and updating the oracle
+            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![],
             collateral_type: Some(USDC),
             max_price_divergence: Decimal::from_inner(i128::MAX),
@@ -217,7 +218,6 @@ mod create_market {
             asset_id in prop_oneof![Just(DOT), Just(PICA)]
         ) {
             ExtBuilder {
-                native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
                 balances: vec![(ALICE, PICA, UNIT), (BOB, PICA, UNIT)],
                 ..Default::default()
             }
@@ -247,7 +247,6 @@ mod open_position {
     #[test]
     fn should_succeed_in_opening_first_position() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![
                 (ALICE, PICA, UNIT),
                 (BOB, PICA, UNIT),
@@ -302,7 +301,6 @@ mod open_position {
     #[test]
     fn should_enforce_slippage_controls() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, UNIT * 100)],
             ..Default::default()
         }
@@ -341,7 +339,6 @@ mod open_position {
     #[test]
     fn should_succeed_with_two_traders_in_a_market() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![
                 (ALICE, PICA, UNIT),
                 (BOB, PICA, UNIT),
@@ -432,7 +429,6 @@ mod open_position {
 	block's timestamp"]
     fn should_update_vamm_twap_in_the_same_block() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, UNIT * 100)],
             ..Default::default()
         }
@@ -495,7 +491,6 @@ mod open_position {
     #[test]
     fn should_update_vamm_twap_across_blocks() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, UNIT * 100)],
             ..Default::default()
         }
@@ -568,7 +563,6 @@ mod update_funding {
     #[test]
     fn should_update_oracle_twap() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             ..Default::default()
         }
         .build()
@@ -613,7 +607,6 @@ mod update_funding {
     #[test]
     fn should_update_vamm_twap() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, UNIT * 100)],
             ..Default::default()
         }
@@ -675,7 +668,6 @@ mod update_funding {
     #[test]
     fn should_block_update_if_mark_index_too_divergent() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, UNIT * 100)],
             ..Default::default()
         }
@@ -723,7 +715,6 @@ mod update_funding {
     #[test]
     fn clearing_house_should_receive_funding() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, UNIT * 100)],
             ..Default::default()
         }
@@ -775,7 +766,6 @@ mod update_funding {
     #[test]
     fn clearing_house_should_pay_funding() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, UNIT * 100), (BOB, USDC, UNIT * 1_000_000)],
             ..Default::default()
         }
@@ -848,7 +838,6 @@ mod liquidate {
     #[test]
     fn should_not_liquidate_if_above_partial_margin_ratio() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, UNIT * 10), (BOB, USDC, UNIT * 1_000_000)],
             ..Default::default()
         }
@@ -905,7 +894,6 @@ mod liquidate {
         let bob_col = UNIT * 1_000;
 
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, alice_col), (BOB, USDC, bob_col)],
             ..Default::default()
         }
@@ -977,7 +965,6 @@ mod liquidate {
     fn should_liquidate_if_below_partial_margin_ratio_by_funding() {
         let collateral = UNIT * 10;
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, collateral)],
             ..Default::default()
         }
@@ -1054,7 +1041,6 @@ mod close_market {
     #[ignore = "Vamm::close not yet implemented"]
     fn should_close_market_and_vamm_under_normal_conditions() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             ..Default::default()
         }
         .build()
@@ -1086,7 +1072,6 @@ mod close_market {
     #[test]
     fn should_block_closing_positions_only_after_market_close() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, UNIT * 100), (BOB, USDC, UNIT * 100)],
             ..Default::default()
         }
@@ -1146,7 +1131,6 @@ mod close_market {
     #[test]
     fn should_not_allow_opening_positions_after_close_market_call() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, UNIT * 100), (BOB, USDC, UNIT * 100)],
             ..Default::default()
         }
@@ -1207,7 +1191,6 @@ mod settle_position {
     #[test]
     fn should_handle_one_long() {
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, UNIT * 100)],
             ..Default::default()
         }
@@ -1261,7 +1244,6 @@ mod settle_position {
     fn should_handle_both_longs() {
         let (alice_col0, bob_col0) = (UNIT * 100, UNIT * 100);
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, alice_col0), (BOB, USDC, bob_col0)],
             ..Default::default()
         }
@@ -1328,7 +1310,6 @@ mod settle_position {
     fn should_handle_equivalent_long_and_short() {
         let (alice_col0, bob_col0) = (UNIT * 100, UNIT * 100);
         ExtBuilder {
-            native_balances: vec![(ALICE, UNIT), (BOB, UNIT)],
             balances: vec![(ALICE, USDC, alice_col0), (BOB, USDC, bob_col0)],
             ..Default::default()
         }
