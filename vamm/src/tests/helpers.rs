@@ -77,6 +77,16 @@ pub fn any_vamm_id() -> RangeInclusive<VammId> {
     VammId::MIN..=VammId::MAX
 }
 
+pub fn with_existing_vamm_context(
+    vamm_config: TestVammConfig<Balance, Moment>,
+    execute: impl FnOnce(),
+) {
+    ExtBuilder::default().build().execute_with(|| {
+        create_vamm(&vamm_config.into());
+        execute();
+    });
+}
+
 // ----------------------------------------------------------------------------------------------------
 //                                               Balance
 // ----------------------------------------------------------------------------------------------------
