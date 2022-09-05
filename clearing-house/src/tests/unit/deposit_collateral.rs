@@ -1,14 +1,16 @@
 use crate::{
     mock::{
-        accounts::{AccountId, ALICE},
         assets::{PICA, USDC},
-        runtime::{
-            Assets as AssetsPallet, Balance, ExtBuilder, Origin, Runtime, System as SystemPallet,
-            TestPallet,
+        unit::{
+            accounts::{AccountId, ALICE},
+            runtime::{
+                Assets as AssetsPallet, Balance, ExtBuilder, Origin, Runtime,
+                System as SystemPallet, TestPallet,
+            },
         },
     },
     pallet::{Collateral, Error, Event},
-    tests::run_to_block,
+    tests::unit::{as_balance, run_to_block},
 };
 use frame_support::{assert_noop, assert_ok, traits::fungibles::Inspect};
 use orml_tokens::Error as TokenError;
@@ -91,4 +93,19 @@ fn deposit_supported_collateral_succeeds() {
     })
 }
 
-// TODO(0xangelo): depositing 0 collateral should fail
+#[test]
+fn should_fail_to_deposit_zero_collateral() {
+    ExtBuilder {
+        balances: vec![(ALICE, USDC, as_balance(100))],
+        ..Default::default()
+    }
+    .build()
+    .execute_with(|| {
+        run_to_block(1);
+
+        assert_noop!(
+            TestPallet::deposit_collateral(Origin::signed(ALICE), USDC, 0),
+            Error::<Runtime>::NoCollateralDeposited
+        );
+    })
+}

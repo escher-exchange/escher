@@ -129,9 +129,6 @@ pub use pallet::*;
 #[allow(unused_imports)]
 use traits::clearing_house::Instruments;
 
-// #[cfg(test)]
-// mod integrations;
-
 #[cfg(test)]
 mod mock;
 
@@ -256,6 +253,7 @@ pub mod pallet {
         /// Virtual Automated Market Maker pallet implementation.
         type Vamm: Vamm<
             Balance = Self::Balance,
+            Moment = DurationSeconds,
             SwapConfig = SwapConfig<Self::VammId, Self::Balance>,
             VammConfig = Self::VammConfig,
             VammId = Self::VammId,
@@ -379,7 +377,7 @@ pub mod pallet {
     ///
     /// # Note
     ///
-    /// Frozen markets do not decrement the counter.
+    /// Closed markets do not decrement the counter.
     #[pallet::storage]
     #[pallet::getter(fn market_count)]
     #[allow(clippy::disallowed_types)]
@@ -542,6 +540,8 @@ pub mod pallet {
         MaxPositionsExceeded,
         /// Attempted to create a new market but the minimum trade size is negative.
         NegativeMinimumTradeSize,
+        /// Tried to deposit zero amount of collateral to a trader's margin account.
+        NoCollateralDeposited,
         /// An operation required the asset id of a valid collateral type but none were registered.
         NoCollateralTypeSet,
         /// Attempted to create a new market but the underlying asset is not supported by the
@@ -1088,6 +1088,7 @@ pub mod pallet {
                 Self::get_collateral_asset_id()? == asset_id,
                 Error::<T>::UnsupportedCollateralType
             );
+            ensure!(!amount.is_zero(), Error::<T>::NoCollateralDeposited);
 
             // Assuming stablecoin collateral and all markets quoted in dollars
             let pallet_acc = Self::get_collateral_account();
@@ -1512,10 +1513,14 @@ pub mod pallet {
             when: Self::Timestamp,
         ) -> Result<(), DispatchError> {
             let mut market = Self::try_get_market(&market_id)?;
+
+            // FIXME(0xangelo): uncomment this once traits::vamm::Vamm is updated
+            // T::Vamm::close(market.vamm_id, when)?;
+
             let now = T::UnixTime::now().as_secs();
             ensure!(when > now, Error::<T>::CloseTimeMustBeAfterCurrentTime);
-
             market.closed_ts = Some(when);
+
             Markets::<T>::insert(&market_id, market);
             Self::deposit_event(Event::<T>::CloseMarket { market_id, when });
             Ok(())
@@ -1878,13 +1883,18 @@ pub mod pallet {
                     Self::settle_funding(&mut position, &market, &mut collateral)?;
 
                     let base_value_to_close = close_ratio.try_mul(&info.base_asset_value)?;
+                    let direction_to_close = info.direction.opposite();
                     let (_, entry_value, exit_value) = Self::decrease_position(
                         &mut position,
                         &mut market,
-                        info.direction.opposite(),
+                        direction_to_close,
                         &base_value_to_close,
-                        Zero::zero(), /* No slippage control is necessary since it was already
-                                       * taken into account when computing `base_asset_value` */
+                        // No slippage control is necessary since it was already taken into account
+                        // when computing `base_asset_value`
+                        match direction_to_close {
+                            Long => Zero::zero(),
+                            Short => base_value_to_close.into_balance()?,
+                        },
                     )?;
                     Markets::<T>::insert(&position.market_id, market);
 
@@ -2155,7 +2165,8 @@ pub mod pallet {
             })
         }
 
-        fn abs_position_notional_and_pnl(
+        /// Returns the absolute value of the position (in quote asset) and its unrealized PnL.
+        pub fn abs_position_notional_and_pnl(
             market: &Market<T>,
             position: &Position<T>,
             position_direction: Direction,

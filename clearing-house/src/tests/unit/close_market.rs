@@ -1,9 +1,9 @@
 use crate::{
-    mock::{
+    mock::unit::{
         accounts::ALICE,
         runtime::{MarketId, Origin, Runtime, TestPallet, Vamm as VammPallet},
     },
-    tests::{
+    tests::unit::{
         as_balance, get_market, run_to_time, with_market_context, with_trading_context, ExtBuilder,
         MarketConfig,
     },

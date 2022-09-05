@@ -1,10 +1,12 @@
 use crate::{
     mock::{
-        self as mock,
         assets::AssetId,
-        runtime::{ExtBuilder, MarketId, Runtime, TestPallet, VammId},
+        unit::{
+            self as mock,
+            runtime::{ExtBuilder, MarketId, Runtime, TestPallet, VammId},
+        },
     },
-    tests::{as_inner, bounded_decimal, zero_to_one_open_interval, Market, Position},
+    tests::unit::{as_inner, bounded_decimal, zero_to_one_open_interval, Market, Position},
     Direction,
 };
 use composable_traits::time::DurationSeconds;
