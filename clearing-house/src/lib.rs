@@ -1535,8 +1535,7 @@ pub mod pallet {
         ) -> Result<(), DispatchError> {
             let mut market = Self::try_get_market(&market_id)?;
 
-            // FIXME(0xangelo): uncomment this once traits::vamm::Vamm is updated
-            // T::Vamm::close(market.vamm_id, when)?;
+            T::Vamm::close(market.vamm_id, when)?;
 
             let now = Self::get_current_time();
             ensure!(when > now, Error::<T>::CloseTimeMustBeAfterCurrentTime);

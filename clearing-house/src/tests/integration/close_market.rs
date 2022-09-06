@@ -1,7 +1,6 @@
 use super::*;
 
 #[test]
-#[ignore = "Vamm::close not yet implemented"]
 fn should_close_market_and_vamm_under_normal_conditions() {
     ExtBuilder {
         ..Default::default()
