@@ -97,7 +97,7 @@ jobs:
           args: --workspace --no-deps --document-private-items
 
   build:
-    name: Run cargo build
+    name: Check WASM compilation
     needs: [format, clippy, test, doc]
     runs-on: ubuntu-latest
     env:
@@ -116,5 +116,5 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: actions-rs/cargo@v1
         with:
-          command: build
-          args: --workspace --release --no-default-features --target=wasm32-unknown-unknown
+          command: check
+          args: --workspace --no-default-features --target=wasm32-unknown-unknown
