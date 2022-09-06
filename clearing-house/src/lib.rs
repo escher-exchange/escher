@@ -161,7 +161,6 @@ pub mod pallet {
     };
     use codec::{Codec, FullCodec};
     use composable_traits::{defi::DeFiComposableConfig, oracle::Oracle};
-    use divrem::RemEuclid;
     #[cfg(feature = "std")]
     use frame_support::traits::GenesisBuild;
     use frame_support::{
@@ -180,7 +179,11 @@ pub mod pallet {
         traits::{AccountIdConversion, CheckedAdd, CheckedDiv, CheckedMul, One, Saturating, Zero},
         ArithmeticError, FixedPointNumber, FixedPointOperand,
     };
-    use sp_std::{cmp::Ordering, fmt::Debug, ops::Neg};
+    use sp_std::{
+        cmp::Ordering,
+        fmt::Debug,
+        ops::{Neg, Rem},
+    };
     use traits::{
         clearing_house::{ClearingHouse, Instruments},
         vamm::{AssetType, SwapConfig, Vamm},
@@ -249,7 +252,6 @@ pub mod pallet {
             + MaxEncodedLen
             + One
             + Ord
-            + RemEuclid<Output = Self::Moment>
             + TypeInfo
             + UnsignedMath
             + Zero;
@@ -1213,7 +1215,7 @@ pub mod pallet {
             ensure!(
                 config
                     .funding_period
-                    .rem_euclid(config.funding_frequency)
+                    .rem(config.funding_frequency)
                     .is_zero(),
                 Error::<T>::FundingPeriodNotMultipleOfFrequency
             );
@@ -2049,7 +2051,7 @@ pub mod pallet {
             if !funding_frequency.is_zero() {
                 // Usual update times are at multiples of funding frequency
                 // Safe since funding frequency is positive
-                let last_update_delay = market.funding_rate_ts.rem_euclid(funding_frequency);
+                let last_update_delay = market.funding_rate_ts.rem(funding_frequency);
 
                 if !last_update_delay.is_zero() {
                     let max_delay_for_not_skipping = funding_frequency.try_div(&3.into())?;

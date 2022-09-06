@@ -15,8 +15,6 @@ codec = { default-features = false, package = "parity-scale-codec", version = "3
 composable-maths = { default-features = false, git = "https://github.com/composableFi/composable", rev = "bfce651ee111a56f1c80cf7f9877e24e61a55c53" }
 composable-traits = { default-features = false, git = "https://github.com/composableFi/composable", rev = "bfce651ee111a56f1c80cf7f9877e24e61a55c53" }
 
-divrem = "1.0.0"
-
 frame-benchmarking = { default-features = false, optional = true, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
 frame-system = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
