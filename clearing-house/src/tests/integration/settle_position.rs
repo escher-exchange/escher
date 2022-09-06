@@ -159,7 +159,7 @@ fn should_handle_equivalent_long_and_short() {
             market_id,
             Short,
             bob_col0,
-            0
+            Balance::MAX
         ));
 
         let now = get_time_now();
