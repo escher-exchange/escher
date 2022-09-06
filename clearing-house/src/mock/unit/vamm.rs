@@ -273,7 +273,7 @@ pub mod pallet {
         }
 
         fn close(vamm_id: T::VammId, closing_time: T::Moment) -> Result<(), DispatchError> {
-            todo!()
+            Ok(())
         }
     }
 

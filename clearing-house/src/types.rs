@@ -1,4 +1,4 @@
-use crate::Config;
+use crate::{Config, MarketConfigOf};
 use composable_traits::oracle::Oracle;
 use frame_support::{
     pallet_prelude::{Decode, Encode, MaxEncodedLen, TypeInfo},
@@ -158,9 +158,7 @@ pub struct Market<T: Config> {
 
 impl<T: Config> Market<T> {
     /// Construct new market from `MarketConfig`.
-    pub fn new(
-        config: MarketConfig<T::MayBeAssetId, T::Balance, T::Decimal, T::Moment, T::VammConfig>,
-    ) -> Result<Self, DispatchError> {
+    pub fn new(config: MarketConfigOf<T>) -> Result<Self, DispatchError> {
         // TODO(0xangelo): should we consider querying the oracle's TWAP here so that the initial
         // price is not one that's too volatile?
         let oracle_price = Self::get_oracle_price(config.asset)?;
