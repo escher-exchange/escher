@@ -17,6 +17,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  spellcheck:
+    name: Check Spelling
+    runs-on: ubuntu-latest
+    steps:
+      - uses: check-spelling/check-spelling@v0.0.20
+
   format:
     name: Run cargo fmt
     runs-on: ubuntu-latest
