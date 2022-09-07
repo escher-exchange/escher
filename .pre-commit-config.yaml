@@ -27,8 +27,8 @@ repos:
         pass_filenames: false
         stages: [push, manual]
       - id: build
-        name: Run cargo build
-        entry: cargo +nightly build --target=wasm32-unknown-unknown --workspace --release --no-default-features
+        name: Check WASM compilation
+        entry: cargo +nightly check --target=wasm32-unknown-unknown --workspace --no-default-features
         language: system
         pass_filenames: false
         stages: [push, manual]
