@@ -7,7 +7,6 @@ title Opening a Position
 actor "Trader" as user
 participant "Clearing\nHouse" as ch
 participant "vAMM" as vamm
-participant "Risk\nEngine" as risk
 database "Markets" as mkts
 database "Positions" as positions
 database "Collateral" as accs
@@ -58,12 +57,12 @@ the oracle?
 end note
 
 'RiskEngine
-ch -> risk ++: ""above_initial_margin_ratio""
-    risk -> risk ++: compute\nmargin ratio
-        risk -[#green]> accs : get collateral
-        risk -[#green]> positions : get all user positions
-        risk -[#green]> mkts : get all markets\ninvested
-        risk -> vamm : get prices
+ch -> ch ++: ""above_initial_margin_ratio""
+    ch -> ch ++: compute\nmargin ratio
+        ch -[#green]> accs : get collateral
+        ch -[#green]> positions : get all user positions
+        ch -[#green]> mkts : get all markets\ninvested
+        ch -> vamm : get prices
     return
 return ""meets_imr""
 
