@@ -92,7 +92,7 @@ package "pallet-clearing-house" {
     }
 }
 
-package "pallet-virtual-amm" {
+package "pallet-vamm" {
     interface "Vamm" as vAmm <<trait>> {
         ~ ""create(config: VammConfig)""
         ~ ""close(vamm: VammId, when: Timestamp)""
