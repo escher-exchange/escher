@@ -13,7 +13,6 @@ use composable_traits::time::DurationSeconds;
 use frame_support::{assert_noop, assert_ok, assert_storage_noop};
 use proptest::prelude::*;
 use sp_runtime::{traits::Zero, FixedI128, FixedPointNumber};
-use traits::clearing_house::Instruments;
 
 // -------------------------------------------------------------------------------------------------
 //                                           Helpers
@@ -161,7 +160,7 @@ proptest! {
         ExtBuilder::default().build().execute_with(|| {
             let market = market_vars.into();
             assert_storage_noop!(
-                assert_ok!(<TestPallet as Instruments>::funding_rate(&market))
+                assert_ok!(TestPallet::funding_rate(&market))
             );
         })
     }
@@ -172,7 +171,7 @@ proptest! {
         ExtBuilder { oracle_twap: None, ..Default::default() }.build().execute_with(|| {
             let market = market_vars.into();
             assert_noop!(
-                <TestPallet as Instruments>::funding_rate(&market),
+                TestPallet::funding_rate(&market),
                 mock::oracle::Error::<Runtime>::CantComputeTwap
             );
         })
@@ -183,7 +182,7 @@ proptest! {
         ExtBuilder { vamm_twap: None, ..Default::default() }.build().execute_with(|| {
             let market = market_vars.into();
             assert_noop!(
-                <TestPallet as Instruments>::funding_rate(&market),
+                TestPallet::funding_rate(&market),
                 mock::vamm::Error::<Runtime>::FailedToCalculateTwap
             );
         })
@@ -196,7 +195,7 @@ proptest! {
         ExtBuilder::default().build().execute_with(|| {
             let market = market_vars.into();
             assert_storage_noop!(
-                assert_ok!(<TestPallet as Instruments>::unrealized_funding(&market, &position))
+                assert_ok!(TestPallet::unrealized_funding(&market, &position))
             );
         })
     }
@@ -226,7 +225,7 @@ proptest! {
                 ..Default::default()
             };
 
-            let unrealized_funding = <TestPallet as Instruments>::unrealized_funding(
+            let unrealized_funding = TestPallet::unrealized_funding(
                 &market, &position
             ).unwrap();
 

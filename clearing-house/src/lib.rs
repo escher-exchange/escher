@@ -48,8 +48,6 @@
 //!
 //! - [`ClearingHouse`](traits::clearing_house::ClearingHouse): Exposes functionality for trading of
 //!   perpetual contracts
-//! - [`Instruments`](traits::clearing_house::Instruments): Exposes functionality for querying
-//!   funding-related quantities of synthetic instruments
 //!
 //! ## Interface
 //!
@@ -125,9 +123,6 @@
 )]
 
 pub use pallet::*;
-// Bring to scope so that 'Implemented Functions' hyperlinks work
-#[allow(unused_imports)]
-use traits::clearing_house::Instruments;
 
 #[cfg(test)]
 mod mock;
@@ -186,7 +181,7 @@ pub mod pallet {
         ops::{Neg, Rem},
     };
     use traits::{
-        clearing_house::{ClearingHouse, Instruments},
+        clearing_house::ClearingHouse,
         vamm::{AssetType, SwapConfig, Vamm},
     };
 
@@ -1582,47 +1577,6 @@ pub mod pallet {
         }
     }
 
-    impl<T: Config> Instruments for Pallet<T> {
-        type Market = Market<T>;
-        type Position = Position<T>;
-        type Decimal = T::Decimal;
-
-        fn funding_rate(market: &Self::Market) -> Result<Self::Decimal, DispatchError> {
-            let vamm_twap: Self::Decimal = T::Vamm::get_twap(market.vamm_id, AssetType::Base)
-                .and_then(|p| p.into_signed().map_err(|e| e.into()))?;
-
-            let mut price_spread = vamm_twap.try_sub(&market.last_oracle_twap)?;
-
-            if let Some(max_divergence) = Self::max_twap_divergence() {
-                let max_price_spread = max_divergence.try_mul(&market.last_oracle_twap)?;
-                price_spread = price_spread.try_clamp(max_price_spread.neg(), max_price_spread)?;
-            }
-
-            let period_adjustment = Self::Decimal::checked_from_rational(
-                market.funding_frequency,
-                market.funding_period,
-            )
-            .ok_or(ArithmeticError::Underflow)?;
-
-            Ok(price_spread.try_mul(&period_adjustment)?)
-        }
-
-        fn unrealized_funding(
-            market: &Self::Market,
-            position: &Self::Position,
-        ) -> Result<Self::Decimal, DispatchError> {
-            if let Some(direction) = position.direction() {
-                let cum_funding_delta = market
-                    .cum_funding_rate(direction)
-                    .try_sub(&position.last_cum_funding)?;
-                let payment = cum_funding_delta.try_mul(&position.base_asset_amount)?;
-                Ok(payment.neg())
-            } else {
-                Ok(Zero::zero())
-            }
-        }
-    }
-
     // ---------------------------------------------------------------------------------------------
     //                                    Helper Functions
     // ---------------------------------------------------------------------------------------------
@@ -1663,7 +1617,7 @@ pub mod pallet {
             let net_base_asset_amount = market
                 .base_asset_amount_long
                 .try_add(&market.base_asset_amount_short)?;
-            let funding_rate = <Self as Instruments>::funding_rate(market)?;
+            let funding_rate = Self::funding_rate(market)?;
             let mut funding_rate_long = funding_rate;
             let mut funding_rate_short = funding_rate;
 
@@ -1761,9 +1715,7 @@ pub mod pallet {
                             .try_mul(&market.margin_ratio_partial)?,
                         base_asset_value,
                         unrealized_pnl,
-                        unrealized_funding: <Self as Instruments>::unrealized_funding(
-                            &market, &position,
-                        )?,
+                        unrealized_funding: Self::unrealized_funding(&market, &position)?,
                     };
 
                     summary.update(market, position, info)?;
@@ -1941,7 +1893,7 @@ pub mod pallet {
             margin: &mut T::Balance,
         ) -> Result<(), DispatchError> {
             if let Some(direction) = position.direction() {
-                let payment = <Self as Instruments>::unrealized_funding(market, position)?;
+                let payment = Self::unrealized_funding(market, position)?;
                 *margin = Self::updated_balance(margin, &payment)?;
                 position.last_cum_funding = market.cum_funding_rate(direction);
             }
@@ -2076,9 +2028,7 @@ pub mod pallet {
                     // Add PnL
                     equity.try_add_mut(&value.try_sub(&position.quote_asset_notional_amount)?)?;
                     // Add unrealized funding
-                    equity.try_add_mut(&<Self as Instruments>::unrealized_funding(
-                        &market, position,
-                    )?)?;
+                    equity.try_add_mut(&Self::unrealized_funding(&market, position)?)?;
                 }
             }
 
@@ -2234,6 +2184,42 @@ pub mod pallet {
                 true => balance.try_add(&abs_delta)?,
                 false => balance.saturating_sub(abs_delta),
             })
+        }
+    }
+
+    // Funding helpers
+    impl<T: Config> Pallet<T> {
+        pub(crate) fn funding_rate(market: &Market<T>) -> Result<T::Decimal, DispatchError> {
+            let vamm_twap: T::Decimal = T::Vamm::get_twap(market.vamm_id, AssetType::Base)
+                .and_then(|p| p.into_signed().map_err(|e| e.into()))?;
+
+            let mut price_spread = vamm_twap.try_sub(&market.last_oracle_twap)?;
+
+            if let Some(max_divergence) = Self::max_twap_divergence() {
+                let max_price_spread = max_divergence.try_mul(&market.last_oracle_twap)?;
+                price_spread = price_spread.try_clamp(max_price_spread.neg(), max_price_spread)?;
+            }
+
+            let period_adjustment =
+                T::Decimal::checked_from_rational(market.funding_frequency, market.funding_period)
+                    .ok_or(ArithmeticError::Underflow)?;
+
+            Ok(price_spread.try_mul(&period_adjustment)?)
+        }
+
+        pub(crate) fn unrealized_funding(
+            market: &Market<T>,
+            position: &Position<T>,
+        ) -> Result<T::Decimal, DispatchError> {
+            if let Some(direction) = position.direction() {
+                let cum_funding_delta = market
+                    .cum_funding_rate(direction)
+                    .try_sub(&position.last_cum_funding)?;
+                let payment = cum_funding_delta.try_mul(&position.base_asset_amount)?;
+                Ok(payment.neg())
+            } else {
+                Ok(Zero::zero())
+            }
         }
     }
 
