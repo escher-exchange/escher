@@ -35,23 +35,6 @@ package "pallet-clearing-house" {
         ~ ""update_funding()""
     }
     
-    interface "RiskEngine" as RETrait <<trait>> {
-        ~ ""get_margin_ratio(AccountId)""
-        ~ ""above_initial_margin_ratio(AccountId)""
-        ~ ""above_maintenance_margin_ratio(AccountId)""
-        ~ ""risk_free_collateral(AccountId)""
-        '~ get_free_collateral()
-    }
-    
-    interface "Instruments" as ITrait <<trait>> {
-        ~ ""unrealized_funding(Position)""
-        ~ ""funding_rate(MarketId)""
-    }
-
-    interface "FeeModel" as FTrait <<trait>> {
-        ~ ""fee_for_trade()""
-    }
-
     database "Clearing House Storage" {
         map "Collateral" as MarginAccounts <<StorageMap>> {
             AccountId => Balance collateral
@@ -126,8 +109,6 @@ Position ..right> Markets : references
 '================== Control flow relationships             
 ClearingHouse -> CH : wraps
 
-CH -[#blue]-> ITrait : calls
-
 'add_margin
 'remove_margin
 CH -[#red]-> MarginAccounts : write
@@ -136,28 +117,24 @@ CH -[#red]-> MarginAccounts : write
 'close_market
 CH -[#red]-> Markets : write
 
-'remove_margin
-CH -[#blue]-> RETrait : calls
 
 'open_position
 'close_position
 'liquidate
 CH -[#red]-> Positions : write
-CH -[#blue]right> FTrait : calls
 
 'open_position
 'close_position
 CH -[#blue]-> vAmm : calls
 
 'update_funding
-ITrait -[#green]-> Markets : read
-ITrait -[#blue]-> Oracle : calls
-ITrait -[#blue]-> vAmm : calls
+CH -[#green]-> Markets : read
+CH -[#blue]-> Oracle : calls
+CH -[#blue]-> vAmm : calls
 
 'get_margin_ratio
-RETrait -[#green]-> MarginAccounts : read
-RETrait -[#green]-> Positions : read
-RETrait -left[#blue]> ITrait : calls
-RETrait -[#blue]-> vAmm : calls
+CH -[#green]-> MarginAccounts : read
+CH -[#green]-> Positions : read
+CH -[#blue]-> vAmm : calls
 
 @enduml
