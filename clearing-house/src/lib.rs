@@ -70,8 +70,6 @@
 //! - [`close_position`](pallet/struct.Pallet.html#method.close_position-1)
 //! - [`update_funding`](pallet/struct.Pallet.html#method.update_funding-1)
 //! - [`liquidate`](pallet/struct.Pallet.html#method.liquidate-1)
-//! - [`funding_rate`](Pallet::funding_rate)
-//! - [`unrealized_funding`](Pallet::unrealized_funding)
 //!
 //! ## Usage
 //!
