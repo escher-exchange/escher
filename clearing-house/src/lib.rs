@@ -154,8 +154,9 @@ pub mod pallet {
     };
     use crate::{
         types::{
-            AccountSummary, OracleStatus, PositionInfo, ShutdownStatus, TradeResponse,
-            TraderPositionState, BASIS_POINT_DENOMINATOR,
+            AccountSummary, AssetIdOf, MarketConfigOf, OracleStatus, PositionInfo, ShutdownStatus,
+            SwapConfigOf, TradeResponse, TradeResultOf, TraderPositionState,
+            BASIS_POINT_DENOMINATOR,
         },
         weights::WeightInfo,
     };
@@ -286,22 +287,6 @@ pub mod pallet {
         /// Weight information for this pallet's extrinsics.
         type WeightInfo: WeightInfo;
     }
-
-    // ---------------------------------------------------------------------------------------------
-    //                                      Pallet Types
-    // ---------------------------------------------------------------------------------------------
-
-    type AssetIdOf<T> = <T as DeFiComposableConfig>::MayBeAssetId;
-    type BalanceOf<T> = <T as DeFiComposableConfig>::Balance;
-    type DecimalOf<T> = <T as Config>::Decimal;
-    type MomentOf<T> = <T as Config>::Moment;
-    type VammConfigOf<T> = <T as Config>::VammConfig;
-    type VammIdOf<T> = <T as Config>::VammId;
-    type SwapConfigOf<T> = SwapConfig<VammIdOf<T>, BalanceOf<T>>;
-    #[allow(missing_docs)]
-    pub type MarketConfigOf<T> =
-        MarketConfig<AssetIdOf<T>, BalanceOf<T>, DecimalOf<T>, MomentOf<T>, VammConfigOf<T>>;
-    type TradeResultOf<T> = Result<(BalanceOf<T>, DecimalOf<T>, DecimalOf<T>), DispatchError>;
 
     // ---------------------------------------------------------------------------------------------
     //                                     Runtime Storage
