@@ -1606,38 +1606,6 @@ pub mod pallet {
             ))
         }
 
-        fn swap_base(
-            market: &Market<T>,
-            direction: Direction,
-            base_amount: T::Balance,
-            quote_limit: T::Balance,
-        ) -> Result<T::Balance, DispatchError> {
-            Ok(T::Vamm::swap(&SwapConfigOf::<T> {
-                vamm_id: market.vamm_id,
-                asset: AssetType::Base,
-                input_amount: base_amount,
-                direction: direction.into(),
-                output_amount_limit: Some(quote_limit),
-            })?
-            .output)
-        }
-
-        fn swap_quote(
-            market: &Market<T>,
-            direction: Direction,
-            quote_abs_decimal: &T::Decimal,
-            base_limit: T::Balance,
-        ) -> Result<T::Balance, DispatchError> {
-            Ok(T::Vamm::swap(&SwapConfigOf::<T> {
-                vamm_id: market.vamm_id,
-                asset: AssetType::Quote,
-                input_amount: quote_abs_decimal.into_balance()?,
-                direction: direction.into(),
-                output_amount_limit: Some(base_limit),
-            })?
-            .output)
-        }
-
         /// Returns the asset Id of the collateral type.
         pub fn get_collateral_asset_id() -> Result<AssetIdOf<T>, DispatchError> {
             CollateralType::<T>::get().ok_or_else(|| Error::<T>::NoCollateralTypeSet.into())
@@ -2333,6 +2301,38 @@ pub mod pallet {
             market.add_base_asset_amount(&position.base_asset_amount, direction)?;
 
             Ok((base_swapped, entry_value, exit_value))
+        }
+
+        fn swap_base(
+            market: &Market<T>,
+            direction: Direction,
+            base_amount: T::Balance,
+            quote_limit: T::Balance,
+        ) -> Result<T::Balance, DispatchError> {
+            Ok(T::Vamm::swap(&SwapConfigOf::<T> {
+                vamm_id: market.vamm_id,
+                asset: AssetType::Base,
+                input_amount: base_amount,
+                direction: direction.into(),
+                output_amount_limit: Some(quote_limit),
+            })?
+            .output)
+        }
+
+        fn swap_quote(
+            market: &Market<T>,
+            direction: Direction,
+            quote_abs_decimal: &T::Decimal,
+            base_limit: T::Balance,
+        ) -> Result<T::Balance, DispatchError> {
+            Ok(T::Vamm::swap(&SwapConfigOf::<T> {
+                vamm_id: market.vamm_id,
+                asset: AssetType::Quote,
+                input_amount: quote_abs_decimal.into_balance()?,
+                direction: direction.into(),
+                output_amount_limit: Some(base_limit),
+            })?
+            .output)
         }
 
         fn settle_profit_and_loss(
