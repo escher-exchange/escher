@@ -5,6 +5,7 @@ use crate::{
     },
     pallet::VammMap,
     tests::types::{Decimal, TestSwapConfig, TestVammConfig, Timestamp, VammId},
+    types::VammState,
 };
 use frame_support::{assert_ok, pallet_prelude::Hooks};
 use proptest::prelude::*;
@@ -53,12 +54,6 @@ pub fn as_decimal(x: u128) -> Decimal {
 
 pub const fn as_decimal_inner(x: u128) -> Balance {
     x * Decimal::DIV
-}
-
-pub fn as_decimal_from_fraction(n: u128, d: u128) -> Decimal {
-    let n = as_decimal(n);
-    let d = as_decimal(d);
-    n / d
 }
 
 pub fn one_up_to_(x: Balance) -> RangeInclusive<Balance> {
@@ -147,12 +142,27 @@ pub fn multiple_swap_configs(max_swaps: usize) -> Vec<BoxedStrategy<SwapConfig<V
 pub fn with_swap_context(
     vamm_config: TestVammConfig<Balance, Moment>,
     swap_config: TestSwapConfig<VammId, Balance>,
-    execute: impl FnOnce(SwapConfig<VammId, Balance>),
+    execute: impl FnOnce(VammConfig<Balance, Timestamp>, SwapConfig<VammId, Balance>),
 ) {
     ExtBuilder::default().build().execute_with(|| {
         create_vamm(&vamm_config.into());
-        execute(swap_config.into());
+        execute(vamm_config.into(), swap_config.into());
     });
+}
+
+pub fn with_existent_vamm_swap_contex(
+    vamm_state: VammState<Balance, Moment, Decimal>,
+    swap_config: SwapConfig<VammId, Balance>,
+    execute: impl FnOnce(SwapConfig<VammId, Balance>),
+) {
+    ExtBuilder {
+        vamm_count: 1,
+        vamms: vec![(0, vamm_state)],
+    }
+    .build()
+    .execute_with(|| {
+        execute(swap_config);
+    })
 }
 
 pub fn with_swap_context_checking_limit(

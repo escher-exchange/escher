@@ -1,10 +1,17 @@
 use crate::{
     types::ClosingState::{Closed, Closing},
-    Config, Error, Pallet, VammStateOf,
+    Config, Error, Pallet, SwapConfigOf, VammStateOf,
 };
 use frame_support::pallet_prelude::*;
 use sp_runtime::traits::{CheckedAdd, Zero};
-use traits::vamm::{AssetType, Direction, SwapConfig, SwapOutput};
+use sp_std::cmp::Ordering::Greater;
+use traits::vamm::{AssetType, Direction, SwapOutput};
+
+#[derive(Debug)]
+pub enum SanityCheckUpdateTwap {
+    Proceed,
+    Abort,
+}
 
 impl<T: Config> Pallet<T> {
     /// Checks if the following properties hold before performing a swap:
@@ -21,8 +28,7 @@ impl<T: Config> Pallet<T> {
     /// * [`Error::<T>::InsufficientFundsForTrade`]
     /// * [`Error::<T>::TradeExtrapolatesMaximumSupportedAmount`]
     pub fn sanity_check_before_swap(
-        // config: &SwapConfigOf<T>,
-        config: &SwapConfig<T::VammId, T::Balance>,
+        config: &SwapConfigOf<T>,
         vamm_state: &VammStateOf<T>,
     ) -> Result<(), DispatchError> {
         // We must ensure that the vamm is not closed before performing any swap.
@@ -71,7 +77,8 @@ impl<T: Config> Pallet<T> {
     /// Checks if the following properties hold after performing a swap:
     ///
     /// * Swapped amount respects the limit specified in
-    /// [`SwapConfig::output_amount_limit`].
+    /// [`SwapConfig::output_amount_limit`](
+    /// ../../traits/vamm/struct.SwapConfig.html#structfield.output_amount_limit).
     /// * Base assets was not completely drained.
     /// * Quote assets was not completely drained.
     ///
@@ -82,7 +89,7 @@ impl<T: Config> Pallet<T> {
     /// * [`Error::<T>::QuoteAssetReservesWouldBeCompletelyDrained`]
     pub fn sanity_check_after_swap(
         vamm_state: &VammStateOf<T>,
-        config: &SwapConfig<T::VammId, T::Balance>,
+        config: &SwapConfigOf<T>,
         amount_swapped: &SwapOutput<T::Balance>,
     ) -> Result<(), DispatchError> {
         // Ensure swapped amount is valid.
@@ -130,7 +137,8 @@ impl<T: Config> Pallet<T> {
         vamm_state: &VammStateOf<T>,
         base_twap: T::Decimal,
         now: &Option<T::Moment>,
-    ) -> Result<(), DispatchError> {
+        try_update: bool,
+    ) -> Result<SanityCheckUpdateTwap, DispatchError> {
         // New desired twap value can't be zero.
         ensure!(!base_twap.is_zero(), Error::<T>::NewTwapValueIsZero);
 
@@ -140,13 +148,24 @@ impl<T: Config> Pallet<T> {
             Error::<T>::VammIsClosed
         );
 
-        // Only update asset's twap if time has passed since last update.
-        ensure!(
-            Self::now(now) > vamm_state.twap_timestamp,
-            Error::<T>::AssetTwapTimestampIsMoreRecent
-        );
-
-        Ok(())
+        // TODO(Cardosaum): remove this check since we implemented a new logic
+        // in the twap module?
+        match Self::now(now).cmp(&vamm_state.twap_timestamp) {
+            Greater => Ok(SanityCheckUpdateTwap::Proceed),
+            _ => {
+                match try_update {
+                    true => {
+                        // Abort runtime storage update operation.
+                        Ok(SanityCheckUpdateTwap::Abort)
+                    },
+                    false => {
+                        // We need to throw an error warning caller that one
+                        // property of the swap operation was violated.
+                        Err(Error::<T>::AssetTwapTimestampIsMoreRecent.into())
+                    },
+                }
+            },
+        }
     }
 
     /// Checks if the following properties hold before closing a vamm:

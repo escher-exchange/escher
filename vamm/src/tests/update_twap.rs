@@ -3,10 +3,7 @@ use crate::{
     pallet::{self, Error},
     tests::{
         constants::RUN_CASES,
-        helpers::{
-            any_sane_asset_amount, as_decimal, as_decimal_from_fraction, run_for_seconds,
-            twap_update_delay,
-        },
+        helpers::{any_sane_asset_amount, as_decimal, run_for_seconds, twap_update_delay},
         helpers_propcompose::any_vamm_state,
         types::{Decimal, Timestamp},
     },
@@ -39,11 +36,11 @@ prop_compose! {
 fn should_succeed_computing_correct_reciprocal_twap() {
     assert_eq!(
         as_decimal(2).reciprocal().unwrap(),
-        as_decimal_from_fraction(50, 100)
+        FixedU128::saturating_from_rational(50, 100)
     );
     assert_eq!(
         as_decimal(50).reciprocal().unwrap(),
-        as_decimal_from_fraction(2, 100)
+        FixedU128::saturating_from_rational(2, 100)
     );
 }
 

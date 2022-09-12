@@ -411,20 +411,6 @@ pub mod pallet {
         /// * [`Pallet::close`]
         /// * [`Pallet::get_vamm_state`]
         VammDoesNotExist,
-        /// Tried to retrieve a Vamm but the function failed.
-        ///
-        /// ## Occurrences
-        ///
-        /// * [`Pallet::get_price`]
-        /// * [`Pallet::get_twap`]
-        /// * [`Pallet::update_twap`]
-        /// * [`Pallet::swap`]
-        /// * [`Pallet::swap_simulation`]
-        /// * [`Pallet::move_price`]
-        /// * [`Pallet::close`]
-        /// * [`Pallet::do_swap`]
-        /// * [`Pallet::get_vamm_state`]
-        FailToRetrieveVamm,
         /// Tried to execute a trade but the Vamm didn't have enough funds to
         /// fulfill it.
         ///
@@ -490,16 +476,6 @@ pub mod pallet {
         /// * [`Pallet::compute_swap`]
         /// * [`Pallet::sanity_check_after_swap`]
         SwappedAmountMoreThanMaximumLimit,
-        /// Tried to derive invariant from [`base`](VammState::base_asset_reserves) and
-        /// [`quote`](VammState::quote_asset_reserves) asset, but the
-        /// computation was not successful.
-        ///
-        /// ## Occurrences
-        ///
-        /// * [`Pallet::create`]
-        /// * [`Pallet::move_price`]
-        /// * [`Pallet::compute_invariant`]
-        FailedToDeriveInvariantFromBaseAndQuoteAsset,
         /// Tried to perform swap operation but it would drain all
         /// [`base`](VammState::base_asset_reserves) asset reserves.
         ///
@@ -540,6 +516,15 @@ pub mod pallet {
         /// * [`Pallet::do_update_twap`]
         /// * [`Pallet::sanity_check_before_update_twap`]
         NewTwapValueIsZero,
+        /// Tried to update twap value, but a function call responsible to
+        /// return a new twap value didn't do so. As the called function should
+        /// return a value always, not doing so must be an error.
+        ///
+        /// ## Occurrences
+        ///
+        /// * [`Pallet::update_twap`]
+        /// * [`Pallet::do_update_twap`]
+        InternalUpdateTwapDidNotReturnValue,
         /// Tried to create a vamm with a
         /// [`twap_period`](VammState::twap_period) smaller than the
         /// minimum allowed one specified by
@@ -654,7 +639,6 @@ pub mod pallet {
         /// * [`Error::<T>::QuoteAssetReserveIsZero`]
         /// * [`Error::<T>::InvariantIsZero`]
         /// * [`Error::<T>::PegMultiplierIsZero`]
-        /// * [`Error::<T>::FailedToDeriveInvariantFromBaseAndQuoteAsset`]
         /// * [`Error::<T>::FundingPeriodTooSmall`]
         /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
         ///
@@ -747,7 +731,6 @@ pub mod pallet {
         ///
         /// ## Errors
         /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::VammIsClosed`]
         /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
         /// * [`ArithmeticError::DivisionByZero`](sp_runtime::ArithmeticError)
@@ -804,7 +787,6 @@ pub mod pallet {
         ///
         /// ## Errors
         /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::VammIsClosed`]
         ///
         /// # Runtime
@@ -886,7 +868,6 @@ pub mod pallet {
         ///
         /// ## Errors
         /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::VammIsClosed`]
         /// * [`Error::<T>::NewTwapValueIsZero`]
         /// * [`Error::<T>::AssetTwapTimestampIsMoreRecent`]
@@ -904,16 +885,16 @@ pub mod pallet {
             // Retrieve vamm state.
             let mut vamm_state = Self::get_vamm_state(&vamm_id)?;
 
-            // Handle optional value.
-            let base_twap = Self::handle_base_twap(base_twap, &vamm_state)?;
-
             // Delegate update twap to internal functions.
-            Self::do_update_twap(vamm_id, &mut vamm_state, base_twap, &None)?;
+            let output = Self::do_update_twap(vamm_id, &mut vamm_state, base_twap, &None)?;
 
             // Deposit updated twap event into blockchain.
-            Self::deposit_event(Event::<T>::UpdatedTwap { vamm_id, base_twap });
+            Self::deposit_event(Event::<T>::UpdatedTwap {
+                vamm_id,
+                base_twap: output,
+            });
 
-            Ok(base_twap)
+            Ok(output)
         }
 
         /// Performs the swap of the desired asset against the vamm.
@@ -956,7 +937,6 @@ pub mod pallet {
         ///
         /// ## Errors
         /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::VammIsClosed`]
         /// * [`Error::<T>::InsufficientFundsForTrade`]
         /// * [`Error::<T>::TradeExtrapolatesMaximumSupportedAmount`]
@@ -975,20 +955,8 @@ pub mod pallet {
             // Get Vamm state.
             let mut vamm_state = Self::get_vamm_state(&config.vamm_id)?;
 
-            // Perform twap update before swapping assets.
-            //
-            // HACK: Find a better way to extract and match this message value
-            // from `Result`.
-            match Self::update_twap(config.vamm_id, None) {
-                Ok(_) => Ok(()),
-                Err(e) => match e {
-                    DispatchError::Module(m) => match m.message {
-                        Some("AssetTwapTimestampIsMoreRecent") => Ok(()),
-                        _ => Err(e),
-                    },
-                    _ => Err(e),
-                },
-            }?;
+            // Tries to update twap before swapping assets.
+            Self::try_update_twap(config.vamm_id, &mut vamm_state, None, &None)?;
 
             // Delegate swap to helper function.
             let amount_swapped = Self::do_swap(config, &mut vamm_state)?;
@@ -1011,11 +979,11 @@ pub mod pallet {
         ///  - `config`: Specification for swaps.
         ///
         /// ## Returns
-        /// The asset amount taking into account slippage and price move due to
-        /// trade size.
+        /// The *expected* asset amount returned after a swap, taking into
+        /// account slippage due to trade size.
         ///
         /// ## Assumptions or Requirements
-        /// * The requested [`VammId`](Config::VammId) must exists.
+        /// * The requested [`VammId`](Config::VammId) must exist.
         /// * The requested Vamm must be open.
         /// * The desired swap amount can not exceed the maximum supported value
         /// for the Vamm.
@@ -1028,7 +996,6 @@ pub mod pallet {
         ///
         /// ## Errors
         /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::VammIsClosed`]
         /// * [`Error::<T>::InsufficientFundsForTrade`]
         /// * [`Error::<T>::BaseAssetReservesWouldBeCompletelyDrained`]
@@ -1099,12 +1066,10 @@ pub mod pallet {
         ///
         /// ## Errors
         /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::VammIsClosed`]
         /// * [`Error::<T>::BaseAssetReserveIsZero`]
         /// * [`Error::<T>::QuoteAssetReserveIsZero`]
         /// * [`Error::<T>::InvariantIsZero`]
-        /// * [`Error::<T>::FailedToDeriveInvariantFromBaseAndQuoteAsset`]
         ///
         /// # Runtime
         /// `O(1)`
@@ -1187,7 +1152,6 @@ pub mod pallet {
         /// * [`Error::<T>::VammDoesNotExist`]
         /// * [`Error::<T>::VammIsClosed`]
         /// * [`Error::<T>::VammIsClosing`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::ClosingDateIsInThePast`]
         ///
         /// # Runtime
@@ -1206,7 +1170,7 @@ pub mod pallet {
                     v.closed = Some(closing_time);
                     Ok(())
                 },
-                None => Err(Error::<T>::FailToRetrieveVamm),
+                None => Err(Error::<T>::VammDoesNotExist),
             })?;
 
             // Emit event.

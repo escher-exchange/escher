@@ -1,7 +1,7 @@
 use crate::{Config, Error, Event, Pallet, SwapConfigOf, SwapOutputOf, VammMap, VammStateOf};
 use frame_support::{pallet_prelude::*, transactional};
-use helpers::numbers::UnsignedMath;
-use sp_runtime::ArithmeticError;
+use helpers::numbers::{IntoU256, UnsignedMath};
+use sp_runtime::ArithmeticError::DivisionByZero;
 use sp_std::cmp::Ordering;
 use traits::vamm::{AssetType, Direction, SwapOutput};
 
@@ -38,7 +38,6 @@ impl<T: Config> Pallet<T> {
     /// # Errors
     ///
     /// * [`Error::<T>::BaseAssetReservesWouldBeCompletelyDrained`]
-    /// * [`Error::<T>::FailToRetrieveVamm`]
     /// * [`Error::<T>::InsufficientFundsForTrade`]
     /// * [`Error::<T>::QuoteAssetReservesWouldBeCompletelyDrained`]
     /// * [`Error::<T>::SwappedAmountLessThanMinimumLimit`]
@@ -64,7 +63,7 @@ impl<T: Config> Pallet<T> {
                 v.quote_asset_reserves = quote_asset_reserves;
                 Ok(())
             },
-            None => Err(Error::<T>::FailToRetrieveVamm),
+            None => Err(Error::<T>::VammDoesNotExist),
         })?;
 
         // Deposit swap event into blockchain.
@@ -86,7 +85,6 @@ impl<T: Config> Pallet<T> {
     /// # Errors
     ///
     /// * [`Error::<T>::BaseAssetReservesWouldBeCompletelyDrained`]
-    /// * [`Error::<T>::FailToRetrieveVamm`]
     /// * [`Error::<T>::InsufficientFundsForTrade`]
     /// * [`Error::<T>::QuoteAssetReservesWouldBeCompletelyDrained`]
     /// * [`Error::<T>::SwappedAmountLessThanMinimumLimit`]
@@ -165,6 +163,10 @@ impl<T: Config> Pallet<T> {
             &config.direction,
             vamm_state,
         )?;
+        let negative = match config.direction {
+            Direction::Add => false,
+            Direction::Remove => true,
+        };
         let swap_output = SwapOutput {
             output: Self::calculate_quote_asset_amount_swapped(
                 &initial_quote_asset_reserve,
@@ -172,7 +174,7 @@ impl<T: Config> Pallet<T> {
                 &config.direction,
                 vamm_state,
             )?,
-            negative: false,
+            negative,
         };
 
         Ok(ComputeSwap {
@@ -192,7 +194,7 @@ impl<T: Config> Pallet<T> {
             Direction::Add => input_asset_amount.try_add(swap_amount)?,
             Direction::Remove => input_asset_amount.try_sub(swap_amount)?,
         };
-        let new_input_amount_u256 = Self::balance_to_u256(new_input_amount)?;
+        let new_input_amount_u256 = new_input_amount.into_u256();
 
         // TODO(Cardosaum): Maybe it would be worth to create another sanity
         // check in the helper function tracking the inputs and verify if
@@ -201,12 +203,12 @@ impl<T: Config> Pallet<T> {
         let new_output_amount_u256 = vamm_state
             .invariant
             .checked_div(new_input_amount_u256)
-            .ok_or(ArithmeticError::DivisionByZero)?;
-        let new_output_amount = Self::u256_to_balance(new_output_amount_u256)?;
+            .ok_or(DivisionByZero)?;
+        let new_output_amount_u128: u128 = new_output_amount_u256.try_into()?;
 
         Ok(CalculateSwapAsset {
             input_amount: new_input_amount,
-            output_amount: new_output_amount,
+            output_amount: new_output_amount_u128.into(),
         })
     }
 

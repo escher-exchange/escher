@@ -15,7 +15,11 @@ sp-runtime = { default-features = false, git = "https://github.com/paritytech/su
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.27" }
 
 [dev-dependencies]
+plotters = "0.3.2"
+polars = {version = "0.23.2", features = ["dtype-struct", "strings", "temporal", "describe", "performant", "rows", "lazy", "csv-file"]}
 proptest = "1.0"
+proptest-derive = "0.3.0"
+rstest = "0.15.0"
 
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.27" }
 sp-arithmetic = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.27" }
