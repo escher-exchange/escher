@@ -1576,7 +1576,7 @@ pub mod pallet {
     //                                    Helper Functions
     // ---------------------------------------------------------------------------------------------
 
-    // Helper functions - low-level functionality
+    // Low-level functionality helpers
     impl<T: Config> Pallet<T> {
         fn get_current_time() -> T::Moment {
             T::UnixTime::now().as_secs().into()
@@ -1695,7 +1695,7 @@ pub mod pallet {
         }
     }
 
-    // Helper functions - validity checks
+    // Validity check helpers
     impl<T: Config> Pallet<T> {
         fn ensure_market_is_open_to_new_orders(market: &Market<T>) -> Result<(), DispatchError> {
             let now = Self::get_current_time();
