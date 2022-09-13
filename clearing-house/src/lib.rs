@@ -2416,7 +2416,7 @@ pub mod pallet {
         ///
         /// ## Returns
         ///
-        /// The fees for the liquidator and insurance fund
+        /// The fees for the liquidator and insurance fund.
         fn fully_liquidate_account(
             user_id: &T::AccountId,
             summary: AccountSummary<T>,
@@ -2492,7 +2492,7 @@ pub mod pallet {
         ///
         /// ## Returns
         ///
-        /// The fees for the liquidator and insurance fund
+        /// The fees for the liquidator and insurance fund.
         fn partially_liquidate_account(
             user_id: &T::AccountId,
             summary: AccountSummary<T>,
