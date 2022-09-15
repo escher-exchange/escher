@@ -57,10 +57,7 @@ mod tests;
 use crate::numbers::{FixedPointMath, UnsignedMath};
 use frame_support::pallet_prelude::*;
 use num_traits::CheckedMul;
-use sp_runtime::{
-    ArithmeticError::{self, Overflow},
-    FixedPointNumber,
-};
+use sp_runtime::ArithmeticError::{self, Overflow};
 use sp_std::cmp::Ord;
 
 #[cfg(feature = "std")]
@@ -100,12 +97,7 @@ use serde::{Deserialize, Serialize};
 /// ```
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct Twap<FixedPoint, Moment>
-where
-    FixedPoint: FixedPointMath + FixedPointNumber + MaybeSerializeDeserialize,
-    Moment:
-        Copy + From<u64> + Into<FixedPoint::Inner> + Ord + UnsignedMath + MaybeSerializeDeserialize,
-{
+pub struct Twap<FixedPoint, Moment> {
     /// The "time weighted average price", represented by a decimal number.
     twap: FixedPoint,
     /// The last time when the [`twap`](Self::twap) value was updated.
@@ -122,9 +114,8 @@ where
 
 impl<FixedPoint, Moment> Twap<FixedPoint, Moment>
 where
-    FixedPoint: FixedPointMath + MaybeSerializeDeserialize,
-    Moment:
-        Copy + From<u64> + Into<FixedPoint::Inner> + Ord + UnsignedMath + MaybeSerializeDeserialize,
+    FixedPoint: FixedPointMath,
+    Moment: Copy + From<u64> + Into<FixedPoint::Inner> + Ord + UnsignedMath,
 {
     /// Creates a new [`Twap`] instance, returning it.
     ///
