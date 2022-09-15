@@ -24,7 +24,7 @@ use helpers::numbers::{FixedPointMath, FromBalance, FromUnsigned, IntoDecimal};
 use proptest::prelude::*;
 use sp_runtime::{FixedI128, FixedU128};
 use traits::{
-    clearing_house::{ClearingHouse, Instruments},
+    clearing_house::ClearingHouse,
     vamm::{AssetType, Vamm},
 };
 
@@ -536,7 +536,7 @@ proptest! {
             // Bob owes 5% of his position in funding
             let bob_funding = FixedI128::from_balance(bob_position / 20).unwrap();
             assert_eq!(
-                <TestPallet as Instruments>::unrealized_funding(
+                TestPallet::unrealized_funding(
                     &market,
                     &get_position(&BOB, &market_id)
                 ).unwrap(),
@@ -546,7 +546,7 @@ proptest! {
             // amount in funding payments. However, Bob's position + the Fee Pool cannot cover the
             // whole amount, so she is paid less
             let bob_and_fees = bob_funding + initial_fee_pool.into_decimal().unwrap();
-            let alice_funding = <TestPallet as Instruments>::unrealized_funding(
+            let alice_funding = TestPallet::unrealized_funding(
                 &market,
                 &get_position(&ALICE, &market_id)
             ).unwrap();

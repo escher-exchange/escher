@@ -14,7 +14,7 @@ use crate::{
         },
     },
     Direction, Market as MarketGeneric, MarketConfig as MarketConfigGeneric, Markets,
-    MaxTwapDivergence,
+    MaxTwapDivergence, Position as PositionGeneric,
 };
 
 use composable_traits::{
@@ -25,7 +25,7 @@ use frame_support::{assert_err, assert_ok, pallet_prelude::Hooks, traits::fungib
 use proptest::prelude::*;
 use sp_runtime::{FixedI128, FixedPointNumber, FixedU128};
 use traits::{
-    clearing_house::{ClearingHouse, Instruments},
+    clearing_house::ClearingHouse,
     vamm::{AssetType, Direction as VammDirection, Vamm},
 };
 
@@ -33,7 +33,7 @@ mod close_market;
 mod close_position;
 mod create_market;
 mod deposit_collateral;
-mod instruments;
+mod internals;
 mod liquidate;
 mod open_position;
 mod settle_position;
@@ -47,9 +47,9 @@ mod withdraw_collateral;
 pub const BALANCE_LOWER_BOUND: Balance = FixedU128::DIV / 10_u128.pow(12); // 1 / (1 trillion)
 pub const BALANCE_UPPER_BOUND: Balance = 10_u128.pow(12) * FixedU128::DIV; // 1 trillion
 
-type Market = <TestPallet as Instruments>::Market;
+type Market = MarketGeneric<Runtime>;
 type MarketConfig = <TestPallet as ClearingHouse>::MarketConfig;
-type Position = <TestPallet as Instruments>::Position;
+type Position = PositionGeneric<Runtime>;
 type SwapConfig = <VammPallet as Vamm>::SwapConfig;
 
 impl Default for ExtBuilder {
