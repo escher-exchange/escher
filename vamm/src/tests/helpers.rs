@@ -1,7 +1,7 @@
 use crate::{
     mock::{
         Balance, ExtBuilder, MockRuntime, Moment, Origin, System as SystemPallet, TestPallet,
-        Timestamp as TimestampPallet,
+        Timestamp as TimestampPallet, Twap,
     },
     pallet::VammMap,
     tests::types::{Decimal, TestSwapConfig, TestVammConfig, Timestamp, VammId},
@@ -9,7 +9,7 @@ use crate::{
 };
 use frame_support::{assert_ok, pallet_prelude::Hooks};
 use proptest::prelude::*;
-use sp_runtime::{traits::Zero, FixedPointNumber};
+use sp_runtime::{traits::Zero, FixedPointNumber, FixedU128};
 use std::ops::RangeInclusive;
 use traits::vamm::{AssetType, Direction, SwapConfig, Vamm as VammTrait, VammConfig};
 
@@ -151,7 +151,7 @@ pub fn with_swap_context(
 }
 
 pub fn with_existent_vamm_swap_contex(
-    vamm_state: VammState<Balance, Moment, Decimal>,
+    vamm_state: VammState<Balance, Moment, Twap>,
     swap_config: SwapConfig<VammId, Balance>,
     execute: impl FnOnce(SwapConfig<VammId, Balance>),
 ) {
@@ -193,7 +193,20 @@ pub fn with_swap_context_checking_limit(
 pub fn twap_update_delay(vamm_id: VammId) -> Moment {
     let vamm_state = TestPallet::get_vamm(vamm_id).unwrap();
     vamm_state
-        .twap_period
-        .saturating_add(vamm_state.twap_timestamp)
+        .base_asset_twap
+        .get_period()
+        .saturating_add(vamm_state.base_asset_twap.get_period())
         .saturating_add(1)
+}
+
+pub fn get_twap_value(vamm_state: &VammState<Balance, Moment, Twap>) -> Decimal {
+    vamm_state.base_asset_twap.get_twap()
+}
+
+pub fn get_twap_timestamp(vamm_state: &VammState<Balance, Moment, Twap>) -> Moment {
+    vamm_state.base_asset_twap.get_timestamp()
+}
+
+pub fn get_twap_period(vamm_state: &VammState<Balance, Moment, Twap>) -> Moment {
+    vamm_state.base_asset_twap.get_period()
 }

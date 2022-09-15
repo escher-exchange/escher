@@ -18,10 +18,10 @@ impl<T: Config> Pallet<T> {
     pub fn do_update_twap(
         vamm_id: T::VammId,
         vamm_state: &mut VammStateOf<T>,
-        base_twap: Option<T::Decimal>,
+        current_price: Option<T::Decimal>,
         now: &Option<T::Moment>,
     ) -> Result<T::Decimal, DispatchError> {
-        match Self::internal_update_twap(vamm_id, vamm_state, base_twap, now, false)? {
+        match Self::internal_update_twap(vamm_id, vamm_state, current_price, now, false)? {
             Some(twap) => Ok(twap),
             None => Err(Error::<T>::InternalUpdateTwapDidNotReturnValue.into()),
         }
@@ -45,12 +45,13 @@ impl<T: Config> Pallet<T> {
     pub fn try_update_twap(
         vamm_id: T::VammId,
         vamm_state: &mut VammStateOf<T>,
-        base_twap: Option<T::Decimal>,
+        current_price: Option<T::Decimal>,
         now: &Option<T::Moment>,
     ) -> Result<Option<T::Decimal>, DispatchError> {
-        Self::internal_update_twap(vamm_id, vamm_state, base_twap, now, true)
+        Self::internal_update_twap(vamm_id, vamm_state, current_price, now, true)
     }
 
+    // TODO(Cardosaum): Update documentattion
     /// Handles the optional value for `base_twap` parameter in function
     /// [`update_twap`](struct.Pallet.html#method.update_twap), computing a new
     /// twap value if necessary.
@@ -58,19 +59,13 @@ impl<T: Config> Pallet<T> {
     /// # Errors
     ///
     /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
-    pub fn handle_base_twap(
-        base_twap: Option<T::Decimal>,
+    fn handle_current_price(
+        current_price: Option<T::Decimal>,
         vamm_state: &VammStateOf<T>,
     ) -> Result<T::Decimal, DispatchError> {
-        match base_twap {
-            Some(base_twap) => Ok(base_twap),
-            None => Self::calculate_twap(
-                &None,
-                vamm_state.twap_timestamp,
-                vamm_state.twap_period,
-                Self::do_get_price(vamm_state, AssetType::Base)?,
-                vamm_state.base_asset_twap,
-            ),
+        match current_price {
+            Some(current_price) => Ok(current_price),
+            None => Self::do_get_price(vamm_state, AssetType::Base),
         }
     }
 
@@ -79,42 +74,27 @@ impl<T: Config> Pallet<T> {
     fn internal_update_twap(
         vamm_id: T::VammId,
         vamm_state: &mut VammStateOf<T>,
-        base_twap: Option<T::Decimal>,
+        current_price: Option<T::Decimal>,
         now: &Option<T::Moment>,
         try_update: bool,
     ) -> Result<Option<T::Decimal>, DispatchError> {
         // Handle optional value.
-        let base_twap = Self::handle_base_twap(base_twap, vamm_state)?;
+        let current_price = Self::handle_current_price(current_price, vamm_state)?;
 
         // Sanity checks must pass before updating runtime storage.
-        match Self::sanity_check_before_update_twap(vamm_state, base_twap, now, try_update)? {
+        match Self::sanity_check_before_update_twap(vamm_state, current_price, now, try_update)? {
             SanityCheckUpdateTwap::Abort => Ok(None),
             SanityCheckUpdateTwap::Proceed => {
                 // We can safely update runtime storage.
                 // Update VammState.
                 let now = Self::now(now);
-                vamm_state.base_asset_twap = base_twap;
-                vamm_state.twap_timestamp = now;
+                let current_twap = vamm_state.base_asset_twap.accumulate(&current_price, now)?;
 
                 // Update runtime storage.
                 VammMap::<T>::insert(&vamm_id, vamm_state);
 
-                Ok(Some(base_twap))
+                Ok(Some(current_twap))
             },
         }
-    }
-
-    fn calculate_twap(
-        now: &Option<T::Moment>,
-        last_twap_timestamp: T::Moment,
-        twap_period: T::Moment,
-        new_price: T::Decimal,
-        old_price: T::Decimal,
-    ) -> Result<T::Decimal, DispatchError> {
-        let now = Self::now(now);
-        let weight_now: T::Moment = now.saturating_sub(last_twap_timestamp).max(1_u64.into());
-        let weight_last_twap: T::Moment = twap_period.saturating_sub(weight_now).max(1_u64.into());
-
-        Self::calculate_weighted_average(new_price, weight_now, old_price, weight_last_twap)
     }
 }

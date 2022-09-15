@@ -37,7 +37,7 @@
 		clippy::cargo,
 		clippy::complexity,
 		clippy::correctness,
-		clippy::nursery,
+		// clippy::nursery,
 		// clippy::pedantic,
 		clippy::perf,
 		// clippy::restriction,
@@ -55,12 +55,16 @@
 mod tests;
 
 use crate::numbers::{FixedPointMath, UnsignedMath};
+use frame_support::pallet_prelude::*;
 use num_traits::CheckedMul;
 use sp_runtime::{
     ArithmeticError::{self, Overflow},
     FixedPointNumber,
 };
 use sp_std::cmp::Ord;
+
+#[cfg(feature = "std")]
+use serde::{Deserialize, Serialize};
 
 /// The [`Twap`] value itself, storing both the underlying time weighted average
 /// price and its most recent timestamp.
@@ -94,11 +98,13 @@ use sp_std::cmp::Ord;
 /// let mut base_twap_mut = base_twap.clone();
 /// base_twap_mut.update_mut(25.0, new_ts);
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
+#[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
 pub struct Twap<FixedPoint, Moment>
 where
-    FixedPoint: FixedPointMath + FixedPointNumber,
-    Moment: Copy + From<u64> + Into<FixedPoint::Inner> + Ord + UnsignedMath,
+    FixedPoint: FixedPointMath + FixedPointNumber + MaybeSerializeDeserialize,
+    Moment:
+        Copy + From<u64> + Into<FixedPoint::Inner> + Ord + UnsignedMath + MaybeSerializeDeserialize,
 {
     /// The "time weighted average price", represented by a decimal number.
     twap: FixedPoint,
@@ -116,8 +122,9 @@ where
 
 impl<FixedPoint, Moment> Twap<FixedPoint, Moment>
 where
-    FixedPoint: FixedPointMath,
-    Moment: Copy + From<u64> + Into<FixedPoint::Inner> + Ord + UnsignedMath,
+    FixedPoint: FixedPointMath + MaybeSerializeDeserialize,
+    Moment:
+        Copy + From<u64> + Into<FixedPoint::Inner> + Ord + UnsignedMath + MaybeSerializeDeserialize,
 {
     /// Creates a new [`Twap`] instance, returning it.
     ///

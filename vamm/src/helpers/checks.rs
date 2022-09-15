@@ -4,7 +4,7 @@ use crate::{
 };
 use frame_support::pallet_prelude::*;
 use sp_runtime::traits::{CheckedAdd, Zero};
-use sp_std::cmp::Ordering::Greater;
+use sp_std::cmp::Ordering::Less;
 use traits::vamm::{AssetType, Direction, SwapOutput};
 
 #[derive(Debug)]
@@ -122,6 +122,8 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
+    // TODO(Cardosaum): Update documetnation to confort to the new rule of
+    // greater or equal the current timestamp
     /// Checks if the following properties hold before updating twap:
     ///
     /// * Vamm is open.
@@ -135,12 +137,12 @@ impl<T: Config> Pallet<T> {
     /// * [`Error::<T>::AssetTwapTimestampIsMoreRecent`]
     pub fn sanity_check_before_update_twap(
         vamm_state: &VammStateOf<T>,
-        base_twap: T::Decimal,
+        current_price: T::Decimal,
         now: &Option<T::Moment>,
         try_update: bool,
     ) -> Result<SanityCheckUpdateTwap, DispatchError> {
         // New desired twap value can't be zero.
-        ensure!(!base_twap.is_zero(), Error::<T>::NewTwapValueIsZero);
+        ensure!(!current_price.is_zero(), Error::<T>::NewTwapValueIsZero);
 
         // Vamm must be open.
         ensure!(
@@ -150,9 +152,8 @@ impl<T: Config> Pallet<T> {
 
         // TODO(Cardosaum): remove this check since we implemented a new logic
         // in the twap module?
-        match Self::now(now).cmp(&vamm_state.twap_timestamp) {
-            Greater => Ok(SanityCheckUpdateTwap::Proceed),
-            _ => {
+        match Self::now(now).cmp(&vamm_state.base_asset_twap.get_timestamp()) {
+            Less => {
                 match try_update {
                     true => {
                         // Abort runtime storage update operation.
@@ -165,6 +166,7 @@ impl<T: Config> Pallet<T> {
                     },
                 }
             },
+            _ => Ok(SanityCheckUpdateTwap::Proceed),
         }
     }
 

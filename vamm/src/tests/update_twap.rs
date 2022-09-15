@@ -1,8 +1,8 @@
 use crate::{
-    mock::{Balance, Event, ExtBuilder, MockRuntime, System, TestPallet},
+    mock::{Balance, Event, ExtBuilder, MockRuntime, System, TestPallet, Twap},
     pallet::{self, Error},
     tests::{
-        constants::RUN_CASES,
+        constants::{RUN_CASES, TWAP_PERIOD},
         helpers::{any_sane_asset_amount, as_decimal, run_for_seconds, twap_update_delay},
         helpers_propcompose::any_vamm_state,
         types::{Decimal, Timestamp},
@@ -117,10 +117,9 @@ fn update_twap_fails_if_twap_timestamp_is_more_recent() {
     let timestamp = Timestamp::MIN;
     let timestamp_greater = Timestamp::MIN + 1;
     let vamm_state = VammState {
-        twap_timestamp: timestamp_greater,
         base_asset_reserves: as_decimal(42).into_inner(),
         quote_asset_reserves: as_decimal(1337).into_inner(),
-        base_asset_twap: as_decimal(42),
+        base_asset_twap: Twap::new(as_decimal(42), timestamp_greater, TWAP_PERIOD),
         ..Default::default()
     };
     let new_twap = Some(as_decimal(10));

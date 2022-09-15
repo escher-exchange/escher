@@ -152,13 +152,13 @@ pub mod pallet {
     use frame_support::{
         pallet_prelude::*, sp_std::fmt::Debug, traits::UnixTime, transactional, Blake2_128Concat,
     };
-    use helpers::numbers::TryReciprocal;
+    use helpers::{numbers::TryReciprocal, twap::Twap};
     use num_integer::Integer;
     use sp_arithmetic::traits::Unsigned;
     use sp_core::U256;
     use sp_runtime::{
         traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, Zero},
-        ArithmeticError, FixedPointNumber,
+        ArithmeticError, FixedPointNumber, FixedU128,
     };
     use traits::vamm::{
         AssetType, Direction, MovePriceConfig, SwapConfig, SwapOutput, Vamm, VammConfig,
@@ -211,6 +211,7 @@ pub mod pallet {
             + From<u64>
             + From<u128>
             + Into<u128>
+            + From<Self::Moment>
             + MaxEncodedLen
             + MaybeSerializeDeserialize
             + Ord
@@ -227,6 +228,8 @@ pub mod pallet {
             + One
             + TryReciprocal
             + TypeInfo
+            + Into<FixedU128>
+            + From<FixedU128>
             + Zero;
 
         /// The Integer type used by the pallet for computing swaps.
@@ -259,9 +262,12 @@ pub mod pallet {
     /// Type alias for the [`SwapConfig`] value of the Vamm Pallet.
     pub type SwapConfigOf<T> = SwapConfig<<T as Config>::VammId, <T as Config>::Balance>;
 
+    // TODO(Cardosaum): Check for broken link
+    /// Type alias for the [`Twap`] value of the Vamm Pallet.
+    pub type TwapOf<T> = Twap<<T as Config>::Decimal, <T as Config>::Moment>;
+
     /// Type alias for the [`VammState`] value of the Vamm Pallet.
-    pub type VammStateOf<T> =
-        VammState<<T as Config>::Balance, <T as Config>::Moment, <T as Config>::Decimal>;
+    pub type VammStateOf<T> = VammState<<T as Config>::Balance, <T as Config>::Moment, TwapOf<T>>;
 
     // ----------------------------------------------------------------------------------------------------
     //                                           Runtime  Storage
@@ -659,6 +665,7 @@ pub mod pallet {
                 Error::<T>::FundingPeriodTooSmall
             );
 
+            // TODO(Cardosaum): Check if temporary VammState is still needed
             let invariant =
                 Self::compute_invariant(config.base_asset_reserves, config.quote_asset_reserves)?;
             let now = Self::now(&None);
@@ -674,11 +681,13 @@ pub mod pallet {
                 let vamm_state = VammStateOf::<T> {
                     base_asset_reserves: config.base_asset_reserves,
                     quote_asset_reserves: config.quote_asset_reserves,
-                    base_asset_twap: Self::do_get_price(&tmp_vamm_state, AssetType::Base)?,
-                    twap_timestamp: now,
+                    base_asset_twap: Twap::new(
+                        Self::do_get_price(&tmp_vamm_state, AssetType::Base)?,
+                        now,
+                        config.twap_period,
+                    ),
                     peg_multiplier: config.peg_multiplier,
                     invariant,
-                    twap_period: config.twap_period,
                     closed: None,
                 };
 
@@ -807,8 +816,8 @@ pub mod pallet {
             );
 
             match asset_type {
-                AssetType::Base => Ok(vamm_state.base_asset_twap),
-                AssetType::Quote => Ok(vamm_state.base_asset_twap.try_reciprocal()?),
+                AssetType::Base => Ok(vamm_state.base_asset_twap.get_twap()),
+                AssetType::Quote => Ok(vamm_state.base_asset_twap.get_twap().try_reciprocal()?),
             }
         }
 

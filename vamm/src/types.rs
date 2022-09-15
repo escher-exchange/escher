@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 /// Data relating to the state of a virtual market.
 #[derive(Encode, Decode, MaxEncodedLen, TypeInfo, Clone, Copy, PartialEq, Eq, Debug, Default)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
-pub struct VammState<Balance, Moment, Decimal> {
+pub struct VammState<Balance, Moment, Twap> {
     /// The total amount of base asset present in the vamm.
     pub base_asset_reserves: Balance,
 
@@ -31,6 +31,7 @@ pub struct VammState<Balance, Moment, Decimal> {
     /// effect at the time `timestamp`.
     pub closed: Option<Moment>,
 
+    // TODO(Cardosaum): Update documentation to conform to the change to `Twap`
     /// The time weighted average price of
     /// [`base`](traits::vamm::AssetType::Base) asset w.r.t.
     /// [`quote`](traits::vamm::AssetType::Quote) asset.  If
@@ -39,15 +40,7 @@ pub struct VammState<Balance, Moment, Decimal> {
     /// reciprocal of each other. For more information about computing the
     /// reciprocal, please check
     /// [`reciprocal`](sp_runtime::FixedPointNumber::reciprocal).
-    pub base_asset_twap: Decimal,
-
-    /// The timestamp for the last update of
-    /// [`base_asset_twap`](VammState::base_asset_twap).
-    pub twap_timestamp: Moment,
-
-    /// The frequency with which the vamm must have its funding rebalanced.
-    /// (Used only for twap calculations.)
-    pub twap_period: Moment,
+    pub base_asset_twap: Twap,
 }
 
 /// Represents the closing state of the vamm.
@@ -62,7 +55,7 @@ pub enum ClosingState {
     Closed,
 }
 
-impl<Balance, Moment, Decimal> VammState<Balance, Moment, Decimal>
+impl<Balance, Moment, Twap> VammState<Balance, Moment, Twap>
 where
     Moment: Ord,
 {

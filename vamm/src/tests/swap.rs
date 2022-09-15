@@ -11,8 +11,9 @@ use crate::{
             QUOTE_REQUIRED_FOR_REMOVING_BASE, QUOTE_RETURNED_AFTER_ADDING_BASE, RUN_CASES,
         },
         helpers::{
-            as_decimal_inner, run_for_seconds, run_to_block, swap_config,
-            with_existent_vamm_swap_contex, with_swap_context, with_swap_context_checking_limit,
+            as_decimal_inner, get_twap_period, get_twap_timestamp, get_twap_value, run_for_seconds,
+            run_to_block, swap_config, with_existent_vamm_swap_contex, with_swap_context,
+            with_swap_context_checking_limit,
         },
         helpers_propcompose::{
             any_swap_config, any_vamm_state, balance_range_lower_half, balance_range_upper_half,
@@ -255,12 +256,15 @@ fn should_update_twap_when_adding_base_asset() {
             let vamm_state_initial = TestPallet::get_vamm(0).unwrap();
 
             // Perform swap
-            run_for_seconds(vamm_state_initial.twap_period);
+            run_for_seconds(get_twap_period(&vamm_state_initial));
             assert_ok!(TestPallet::swap(&swap_config));
 
             // Ensure twap was updated
             let vamm_state = TestPallet::get_vamm(0).unwrap();
-            assert_ne!(vamm_state_initial.twap_timestamp, vamm_state.twap_timestamp);
+            assert_ne!(
+                get_twap_timestamp(&vamm_state_initial),
+                get_twap_timestamp(&vamm_state)
+            );
         },
     );
 }
@@ -282,12 +286,15 @@ fn should_update_twap_when_removing_base_asset() {
             let vamm_state_initial = TestPallet::get_vamm(0).unwrap();
 
             // Perform swap
-            run_for_seconds(vamm_state_initial.twap_period);
+            run_for_seconds(get_twap_period(&vamm_state_initial));
             assert_ok!(TestPallet::swap(&swap_config));
 
             // Ensure twap was updated
             let vamm_state = TestPallet::get_vamm(0).unwrap();
-            assert_ne!(vamm_state_initial.twap_timestamp, vamm_state.twap_timestamp);
+            assert_ne!(
+                get_twap_timestamp(&vamm_state_initial),
+                get_twap_timestamp(&vamm_state)
+            );
         },
     );
 }
@@ -309,12 +316,15 @@ fn should_update_twap_when_adding_quote_asset() {
             let vamm_state_initial = TestPallet::get_vamm(0).unwrap();
 
             // Perform swap
-            run_for_seconds(vamm_state_initial.twap_period);
+            run_for_seconds(get_twap_period(&vamm_state_initial));
             assert_ok!(TestPallet::swap(&swap_config));
 
             // Ensure twap was updated
             let vamm_state = TestPallet::get_vamm(0).unwrap();
-            assert_ne!(vamm_state_initial.twap_timestamp, vamm_state.twap_timestamp);
+            assert_ne!(
+                get_twap_timestamp(&vamm_state_initial),
+                get_twap_timestamp(&vamm_state)
+            );
         },
     );
 }
@@ -336,12 +346,15 @@ fn should_update_twap_when_removing_quote_asset() {
             let vamm_state_initial = TestPallet::get_vamm(0).unwrap();
 
             // Perform swap
-            run_for_seconds(vamm_state_initial.twap_period);
+            run_for_seconds(get_twap_period(&vamm_state_initial));
             assert_ok!(TestPallet::swap(&swap_config));
 
             // Ensure twap was updated
             let vamm_state = TestPallet::get_vamm(0).unwrap();
-            assert_ne!(vamm_state_initial.twap_timestamp, vamm_state.twap_timestamp);
+            assert_ne!(
+                get_twap_timestamp(&vamm_state_initial),
+                get_twap_timestamp(&vamm_state)
+            );
         },
     );
 }
@@ -357,22 +370,28 @@ fn should_not_update_twap_if_current_twap_timestamp_is_more_recent() {
             // In the first swap the current time was more recent then the time when
             // the twap update happened, so we must ensure we updated the twap
             // timestamp.
-            let delay = vamm_state_t0.twap_period - 1;
+            let delay = get_twap_period(&vamm_state_t0) - 1;
             run_for_seconds(delay);
             assert_ok!(TestPallet::swap(&swap_config));
             let vamm_state_t1 = TestPallet::get_vamm(0).unwrap();
             assert_eq!(
-                vamm_state_t1.twap_timestamp,
-                vamm_state_t0.twap_timestamp + delay
+                get_twap_timestamp(&vamm_state_t1),
+                get_twap_timestamp(&vamm_state_t0) + delay
             );
-            assert_ne!(vamm_state_t0.twap_timestamp, vamm_state_t1.twap_timestamp);
+            assert_ne!(
+                get_twap_timestamp(&vamm_state_t0),
+                get_twap_timestamp(&vamm_state_t1)
+            );
 
             // In the second swap the time didn't pass between operations, so we
             // can't allow the twap timestamp nor the twap value to be updated
             // again.
             assert_ok!(TestPallet::swap(&swap_config));
             let vamm_state_t2 = TestPallet::get_vamm(0).unwrap();
-            assert_eq!(vamm_state_t1.twap_timestamp, vamm_state_t2.twap_timestamp);
+            assert_eq!(
+                get_twap_timestamp(&vamm_state_t1),
+                get_twap_timestamp(&vamm_state_t2)
+            );
             assert_eq!(vamm_state_t1.base_asset_twap, vamm_state_t2.base_asset_twap);
         },
     );
@@ -398,12 +417,15 @@ fn should_update_twap_if_twap_period_has_passed(#[case] delta: Timestamp) {
         },
         |_, swap_config| {
             let vamm_state_t0 = TestPallet::get_vamm(0).unwrap();
-            run_for_seconds(delta.saturating_add(vamm_state_t0.twap_period));
+            run_for_seconds(delta.saturating_add(get_twap_period(&vamm_state_t0)));
             assert_ok!(TestPallet::swap(&swap_config));
-            run_for_seconds(delta.saturating_add(vamm_state_t0.twap_period));
+            run_for_seconds(delta.saturating_add(get_twap_period(&vamm_state_t0)));
             assert_ok!(TestPallet::swap(&swap_config));
             let vamm_state_t1 = TestPallet::get_vamm(0).unwrap();
-            assert_ne!(vamm_state_t0.twap_timestamp, vamm_state_t1.twap_timestamp);
+            assert_ne!(
+                get_twap_timestamp(&vamm_state_t0),
+                get_twap_timestamp(&vamm_state_t1)
+            );
             assert_ne!(vamm_state_t0.base_asset_twap, vamm_state_t1.base_asset_twap);
         },
     );
@@ -580,10 +602,11 @@ proptest! {
         // Ensure vamm is open before start operation to swap assets.
         vamm_state.closed = None;
 
+        // TODO(Cardosaum): Update checks?
         // Ensure twap timestamp is in the past and that twap period is valid
         // for twap updates.
-        vamm_state.twap_timestamp = 0;
-        vamm_state.twap_period = MINIMUM_TWAP_PERIOD.into();
+        // vamm_state.twap_timestamp = 0;
+        // vamm_state.twap_period = MINIMUM_TWAP_PERIOD.into();
 
         // Disable output limit check.
         swap_config.output_amount_limit = None;
@@ -598,11 +621,11 @@ proptest! {
                 match TestPallet::swap(&swap_config) {
                     Ok(_) => {
                         let vamm_state_after = TestPallet::get_vamm(0).unwrap();
-                        assert_ne!(vamm_state.twap_timestamp, vamm_state_after.twap_timestamp);
+                        assert_ne!(get_twap_timestamp(&vamm_state), get_twap_timestamp(&vamm_state_after));
                     },
                     _ => {
                         let vamm_state_after = TestPallet::get_vamm(0).unwrap();
-                        assert_eq!(vamm_state.twap_timestamp, vamm_state_after.twap_timestamp);
+                        assert_eq!(get_twap_timestamp(&vamm_state), get_twap_timestamp(&vamm_state_after));
                     }
                 }
             }

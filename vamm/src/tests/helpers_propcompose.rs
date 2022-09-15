@@ -1,5 +1,5 @@
 use crate::{
-    mock::{Balance, TestPallet},
+    mock::{Balance, TestPallet, Twap},
     tests::{
         constants::{MAXIMUM_RESERVE, MINIMUM_RESERVE, RUN_CASES, ZERO_RESERVE},
         helpers::{
@@ -10,7 +10,7 @@ use crate::{
     types::VammState,
 };
 use proptest::prelude::*;
-use sp_runtime::{traits::One, FixedPointNumber};
+use sp_runtime::{traits::One, FixedPointNumber, FixedU128};
 use traits::vamm::{
     AssetType, Direction, MovePriceConfig, SwapConfig, VammConfig, MINIMUM_TWAP_PERIOD,
 };
@@ -181,7 +181,7 @@ prop_compose! {
         closed in prop_oneof![any_time().prop_map(Some), Just(None)],
         twap_timestamp in any_time(),
         twap_period in any_time()
-    ) -> VammState<Balance, Timestamp, Decimal> {
+    ) -> VammState<Balance, Timestamp, Twap> {
         VammState {
             base_asset_reserves,
             quote_asset_reserves,
@@ -189,10 +189,12 @@ prop_compose! {
             invariant: TestPallet::compute_invariant(
                 base_asset_reserves, quote_asset_reserves
             ).unwrap(),
-            twap_timestamp,
-            base_asset_twap: Decimal::from_inner(base_asset_reserves),
+            base_asset_twap: Twap::new(
+                FixedU128::from_inner(base_asset_reserves),
+                twap_timestamp,
+                twap_period
+            ),
             closed,
-            twap_period,
         }
     }
 }
