@@ -41,6 +41,7 @@ std = [
     "frame-benchmarking/std",
     "frame-support/std",
     "frame-system/std",
+    "helpers/std",
     "sp-arithmetic/std",
     "sp-core/std",
     "sp-io/std",
