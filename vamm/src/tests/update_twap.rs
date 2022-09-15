@@ -3,7 +3,10 @@ use crate::{
     pallet::{self, Error},
     tests::{
         constants::{RUN_CASES, TWAP_PERIOD},
-        helpers::{any_sane_asset_amount, as_decimal, run_for_seconds, twap_update_delay},
+        helpers::{
+            any_sane_asset_amount, as_decimal, get_twap_timestamp, get_twap_value, run_for_seconds,
+            twap_update_delay,
+        },
         helpers_propcompose::any_vamm_state,
         types::{Decimal, Timestamp},
     },
@@ -11,7 +14,10 @@ use crate::{
 };
 use frame_support::{assert_noop, assert_ok, assert_storage_noop};
 use proptest::prelude::*;
-use sp_runtime::{traits::Saturating, FixedPointNumber, FixedU128};
+use sp_runtime::{
+    traits::{One, Saturating},
+    FixedPointNumber, FixedU128,
+};
 use traits::vamm::{Vamm as VammTrait, VammConfig};
 
 // ----------------------------------------------------------------------------------------------------
@@ -72,7 +78,8 @@ fn update_twap_fails_if_vamm_is_closed() {
         closed: Some(Timestamp::MIN),
         base_asset_reserves: as_decimal(42).into_inner(),
         quote_asset_reserves: as_decimal(1337).into_inner(),
-        base_asset_twap: as_decimal(42),
+        base_asset_twap: Twap::new(as_decimal(42), Default::default(), TWAP_PERIOD),
+        peg_multiplier: One::one(),
         ..Default::default()
     };
     let base_twap = Some(as_decimal(10));
@@ -120,6 +127,7 @@ fn update_twap_fails_if_twap_timestamp_is_more_recent() {
         base_asset_reserves: as_decimal(42).into_inner(),
         quote_asset_reserves: as_decimal(1337).into_inner(),
         base_asset_twap: Twap::new(as_decimal(42), timestamp_greater, TWAP_PERIOD),
+        peg_multiplier: One::one(),
         ..Default::default()
     };
     let new_twap = Some(as_decimal(10));
@@ -147,12 +155,10 @@ fn should_succeed_updating_twap_correctly() {
     let timestamp = Timestamp::MIN;
     let twap = as_decimal(1).into_inner();
     let new_twap = Some(as_decimal(5));
-    let vamm_state = VammState::<Balance, Timestamp, Decimal> {
-        twap_timestamp: timestamp,
-        base_asset_twap: twap.into(),
+    let vamm_state = VammState {
+        base_asset_twap: Twap::new(twap.into(), timestamp, TWAP_PERIOD),
         base_asset_reserves: twap,
         quote_asset_reserves: twap,
-        twap_period: 3600,
         peg_multiplier: 1,
         ..Default::default()
     };
@@ -165,14 +171,14 @@ fn should_succeed_updating_twap_correctly() {
         run_for_seconds(twap_update_delay(0));
         assert_ok!(TestPallet::update_twap(0, new_twap), new_twap.unwrap());
         assert_eq!(
-            TestPallet::get_vamm(0).unwrap().base_asset_twap,
+            get_twap_value(&TestPallet::get_vamm(0).unwrap()),
             new_twap.unwrap()
         );
 
         run_for_seconds(twap_update_delay(0));
         assert_ok!(TestPallet::update_twap(0, None));
         assert_ne!(
-            TestPallet::get_vamm(0).unwrap().base_asset_twap,
+            get_twap_value(&TestPallet::get_vamm(0).unwrap()),
             new_twap.unwrap()
         );
     });
@@ -185,7 +191,7 @@ fn should_update_twap_correctly() {
             base_asset_reserves: as_decimal(2).into_inner(),
             quote_asset_reserves: as_decimal(50).into_inner(),
             peg_multiplier: 1,
-            twap_period: 3600,
+            twap_period: TWAP_PERIOD,
         });
         let vamm_id = vamm_creation.unwrap();
         let original_base_twap = TestPallet::get_vamm(vamm_id).unwrap().base_asset_twap;
@@ -196,7 +202,7 @@ fn should_update_twap_correctly() {
         let new_base_twap = Some(as_decimal(100));
         assert_ok!(TestPallet::update_twap(vamm_id, new_base_twap));
         let vamm_state = TestPallet::get_vamm(vamm_id).unwrap();
-        assert_eq!(vamm_state.base_asset_twap, new_base_twap.unwrap());
+        assert_eq!(get_twap_value(&vamm_state), new_base_twap.unwrap());
         System::assert_last_event(Event::TestPallet(pallet::Event::UpdatedTwap {
             vamm_id,
             base_twap: new_base_twap.unwrap(),
@@ -228,8 +234,8 @@ fn should_update_twap_correctly() {
             let upper =
                 FixedU128::saturating_from_rational(precison, precison.saturating_sub(epsilon));
             match FixedU128::checked_from_rational(
-                vamm_state.base_asset_twap.into_inner(),
-                original_base_twap.into_inner(),
+                get_twap_value(&vamm_state).into_inner(),
+                original_base_twap.get_twap().into_inner(),
             ) {
                 Some(q) =>
                     if lower <= q && q <= upper {
@@ -243,7 +249,7 @@ fn should_update_twap_correctly() {
 
         System::assert_last_event(Event::TestPallet(pallet::Event::UpdatedTwap {
             vamm_id,
-            base_twap: vamm_state.base_asset_twap,
+            base_twap: get_twap_value(&vamm_state),
         }));
     });
 }
@@ -259,16 +265,11 @@ proptest! {
         vamm_state in any_vamm_state(),
         base_twap in any_new_twap()
     ) {
-        let now = vamm_state.twap_timestamp
+        let now = get_twap_timestamp(&vamm_state)
                             .min(Timestamp::MAX/1000)
                             .saturating_add(1);
         let vamm_state = VammState {
             closed: None,
-            twap_timestamp: vamm_state.twap_timestamp
-                                        .min(now)
-                                        .saturating_add(1),
-            twap_period: vamm_state.twap_timestamp
-                                        .saturating_add(1),
             ..vamm_state
         };
 

@@ -186,7 +186,6 @@ fn should_liquidate_if_below_partial_margin_ratio_by_funding() {
         for _ in 0..10 {
             advance_blocks_by(1, config.twap_period);
             assert_ok!(TestPallet::update_funding(Origin::signed(ALICE), market_id));
-            get_market(&market_id).last_oracle_twap;
         }
 
         assert_ok!(TestPallet::liquidate(Origin::signed(BOB), ALICE));

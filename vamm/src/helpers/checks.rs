@@ -141,6 +141,8 @@ impl<T: Config> Pallet<T> {
         now: &Option<T::Moment>,
         try_update: bool,
     ) -> Result<SanityCheckUpdateTwap, DispatchError> {
+        dbg!(&vamm_state, &current_price, &now, &try_update);
+
         // New desired twap value can't be zero.
         ensure!(!current_price.is_zero(), Error::<T>::NewTwapValueIsZero);
 

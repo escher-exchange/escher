@@ -18,7 +18,7 @@ use frame_support::{
 };
 use pallet_vamm::VammStateOf;
 use proptest::prelude::*;
-use sp_runtime::{traits::Zero, FixedPointNumber, Percent};
+use sp_runtime::{traits::Zero, FixedPointNumber, FixedU128, Percent};
 use traits::vamm::{AssetType, Vamm as VammTrait, VammConfig as VammConfigGeneric};
 
 mod close_market;
@@ -119,6 +119,10 @@ fn get_market_fee_pool(market_id: MarketId) -> Balance {
 
 fn get_vamm(vamm_id: &VammId) -> VammStateOf<Runtime> {
     Vamm::get_vamm(vamm_id).unwrap()
+}
+
+fn get_vammm_twap_value(vamm_state: &VammStateOf<Runtime>) -> FixedU128 {
+    vamm_state.base_asset_twap.get_twap()
 }
 
 fn get_insurance_acc_balance() -> Balance {

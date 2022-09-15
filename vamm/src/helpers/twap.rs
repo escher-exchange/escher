@@ -1,6 +1,5 @@
 use crate::{helpers::checks::SanityCheckUpdateTwap, Config, Error, Pallet, VammMap, VammStateOf};
 use frame_support::{pallet_prelude::*, transactional};
-use sp_runtime::traits::Saturating;
 use traits::vamm::AssetType;
 
 impl<T: Config> Pallet<T> {
