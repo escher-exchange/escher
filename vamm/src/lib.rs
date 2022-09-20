@@ -486,6 +486,12 @@ pub mod pallet {
         /// * [`Pallet::close`]
         /// * [`Pallet::sanity_check_before_close`]
         VammIsClosing,
+        /// Tried to perform an operation against an open Vamm, whereas it should be closing/closed.
+        ///
+        /// ## Occurrences
+        ///
+        /// * [`Pallet::get_settlement_price`]
+        VammIsOpen,
         /// Tried to swap assets but the amount returned was less than the minimum expected.
         ///
         /// ## Occurrences
@@ -705,6 +711,8 @@ pub mod pallet {
                         now,
                         config.twap_period,
                     ),
+                    terminal_base_asset_reserves: config.base_asset_reserves,
+                    terminal_quote_asset_reserves: config.quote_asset_reserves,
                     peg_multiplier: config.peg_multiplier,
                     invariant,
                     closed: None,
@@ -1135,8 +1143,9 @@ pub mod pallet {
             Ok(invariant)
         }
 
-        fn get_settlement_price(_vamm_id: Self::VammId) -> Result<Self::Decimal, DispatchError> {
-            todo!()
+        fn get_settlement_price(vamm_id: Self::VammId) -> Result<Self::Decimal, DispatchError> {
+            let _ = Self::get_vamm_state(&vamm_id)?;
+            Ok(Zero::zero())
         }
 
         /// Schedules a closing date for the desired vamm, after which the vamm
