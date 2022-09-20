@@ -177,7 +177,7 @@ pub mod pallet {
     use frame_support::{
         pallet_prelude::*, sp_std::fmt::Debug, traits::UnixTime, transactional, Blake2_128Concat,
     };
-    use helpers::{numbers::TryReciprocal, twap::Twap};
+    use helpers::{numbers::{FixedPointMath, TryReciprocal, UnsignedMath}, twap::Twap};
     use num_integer::Integer;
     use sp_arithmetic::traits::Unsigned;
     use sp_core::U256;
@@ -1150,7 +1150,27 @@ pub mod pallet {
                 Self::is_vamm_closed(&vamm_state, &None),
                 Error::<T>::VammIsNotClosed
             );
-            Ok(Zero::zero())
+
+            let abs_base_diff = Self::abs_balance_diff(
+                vamm_state.base_asset_reserves,
+                vamm_state.terminal_base_asset_reserves,
+            );
+            let abs_quote_diff = Self::abs_balance_diff(
+                vamm_state
+                    .peg_multiplier
+                    .try_mul(&vamm_state.quote_asset_reserves)?,
+                vamm_state
+                    .peg_multiplier
+                    .try_mul(&vamm_state.terminal_quote_asset_reserves)?,
+            );
+
+            if abs_base_diff.is_zero() {
+                return Ok(Zero::zero())
+            }
+
+            let net_base_decimal = T::Decimal::from_inner(abs_base_diff);
+            let net_quote_decimal = T::Decimal::from_inner(abs_quote_diff);
+            Ok(net_quote_decimal.try_div(&net_base_decimal)?)
         }
 
         /// Schedules a closing date for the desired vamm, after which the vamm

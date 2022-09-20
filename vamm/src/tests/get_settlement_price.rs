@@ -27,7 +27,7 @@ fn create_trade_and_close(long_size: Option<Balance>, short_size: Option<Balance
                     asset: AssetType::Base,
                     input_amount: amount,
                     direction: Direction::Add,
-                    output_amount_limit: None,
+                    output_amount_limit: Zero::zero(),
                 }
                 .into()
             ));
@@ -42,7 +42,7 @@ fn create_trade_and_close(long_size: Option<Balance>, short_size: Option<Balance
                     asset: AssetType::Base,
                     input_amount: amount,
                     direction: Direction::Remove,
-                    output_amount_limit: None,
+                    output_amount_limit: Balance::MAX,
                 }
                 .into()
             ));
