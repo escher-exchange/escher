@@ -99,6 +99,11 @@ pub fn any_sane_asset_amount() -> RangeInclusive<u128> {
     min_sane_balance()..=max_sane_balance()
 }
 
+pub fn as_balance<T: Into<Decimal>>(amount: T) -> Balance {
+    let decimal: Decimal = amount.into();
+    decimal.into_inner()
+}
+
 // ----------------------------------------------------------------------------------------------------
 //                                                 Time
 // ----------------------------------------------------------------------------------------------------

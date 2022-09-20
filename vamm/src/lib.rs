@@ -486,12 +486,13 @@ pub mod pallet {
         /// * [`Pallet::close`]
         /// * [`Pallet::sanity_check_before_close`]
         VammIsClosing,
-        /// Tried to perform an operation against an open Vamm, whereas it should be closing/closed.
+        /// Tried to perform an operation against an open/closing Vamm, whereas it should be
+        /// closed.
         ///
         /// ## Occurrences
         ///
         /// * [`Pallet::get_settlement_price`]
-        VammIsOpen,
+        VammIsNotClosed,
         /// Tried to swap assets but the amount returned was less than the minimum expected.
         ///
         /// ## Occurrences
@@ -1144,7 +1145,11 @@ pub mod pallet {
         }
 
         fn get_settlement_price(vamm_id: Self::VammId) -> Result<Self::Decimal, DispatchError> {
-            let _ = Self::get_vamm_state(&vamm_id)?;
+            let vamm_state = Self::get_vamm_state(&vamm_id)?;
+            ensure!(
+                Self::is_vamm_closed(&vamm_state, &None),
+                Error::<T>::VammIsNotClosed
+            );
             Ok(Zero::zero())
         }
 
