@@ -50,8 +50,7 @@ impl<T: Config> Pallet<T> {
         Self::internal_update_twap(vamm_id, vamm_state, current_price, now, true)
     }
 
-    // TODO(Cardosaum): Update documentattion
-    /// Handles the optional value for `base_twap` parameter in function
+    /// Handles the optional value for the `base_twap` parameter in function
     /// [`update_twap`](struct.Pallet.html#method.update_twap), computing a new
     /// twap value if necessary.
     ///
@@ -78,16 +77,22 @@ impl<T: Config> Pallet<T> {
         try_update: bool,
     ) -> Result<Option<T::Decimal>, DispatchError> {
         // Handle optional value.
-        let current_price = Self::handle_current_price(current_price, vamm_state)?;
+        let set_price_to_specific_value = current_price.is_some();
+        let price = Self::handle_current_price(current_price, vamm_state)?;
 
         // Sanity checks must pass before updating runtime storage.
-        match Self::sanity_check_before_update_twap(vamm_state, current_price, now, try_update)? {
+        match Self::sanity_check_before_update_twap(vamm_state, price, now, try_update)? {
             SanityCheckUpdateTwap::Abort => Ok(None),
             SanityCheckUpdateTwap::Proceed => {
                 // We can safely update runtime storage.
                 // Update VammState.
                 let now = Self::now(now);
-                let current_twap = vamm_state.base_asset_twap.accumulate(&current_price, now)?;
+                let current_twap = if set_price_to_specific_value {
+                    vamm_state.base_asset_twap.set_timestamp(now);
+                    vamm_state.base_asset_twap.set_twap(price)
+                } else {
+                    vamm_state.base_asset_twap.accumulate(&price, now)?
+                };
 
                 // Update runtime storage.
                 VammMap::<T>::insert(&vamm_id, vamm_state);

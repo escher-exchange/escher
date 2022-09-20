@@ -92,13 +92,26 @@
 #![cfg_attr(
     not(test),
     warn(
+        clippy::all,
+        clippy::cargo,
+        clippy::complexity,
+        clippy::correctness,
         clippy::disallowed_methods,
         clippy::disallowed_types,
+        clippy::doc_markdown,
         clippy::indexing_slicing,
+        clippy::panic,
+        clippy::pedantic,
+        clippy::perf,
+        clippy::style,
+        clippy::suspicious,
         clippy::todo,
         clippy::unwrap_used,
-        clippy::panic,
-        clippy::doc_markdown
+        missing_docs,
+        rustdoc::missing_crate_level_docs,
+        // TODO(Cardosaum): Write examples to all sections required
+        // rustdoc::missing_doc_code_examples,
+        warnings,
     )
 )]
 // Specify linters to VAMM Pallet.
@@ -123,7 +136,18 @@
     unused_comparisons,
     unused_extern_crates,
     unused_parens,
-    while_true
+    while_true,
+    rustdoc::broken_intra_doc_links
+)]
+// TODO(Cardosaum): Assess if it's possible to remove some of these allowed
+// linters in the future.
+#![allow(
+    clippy::wildcard_imports,
+    clippy::used_underscore_binding,
+    clippy::cargo_common_metadata,
+    clippy::default_trait_access,
+    clippy::must_use_candidate,
+    clippy::missing_doc_code_examples
 )]
 
 #[cfg(test)]
@@ -141,6 +165,7 @@ pub mod helpers;
 
 pub use pallet::*;
 
+#[allow(clippy::too_many_lines, clippy::let_underscore_drop)]
 #[frame_support::pallet]
 pub mod pallet {
     // ----------------------------------------------------------------------------------------------------
@@ -262,7 +287,6 @@ pub mod pallet {
     /// Type alias for the [`SwapConfig`] value of the Vamm Pallet.
     pub type SwapConfigOf<T> = SwapConfig<<T as Config>::VammId, <T as Config>::Balance>;
 
-    // TODO(Cardosaum): Check for broken link
     /// Type alias for the [`Twap`] value of the Vamm Pallet.
     pub type TwapOf<T> = Twap<<T as Config>::Decimal, <T as Config>::Moment>;
 
@@ -532,8 +556,8 @@ pub mod pallet {
         /// * [`Pallet::do_update_twap`]
         InternalUpdateTwapDidNotReturnValue,
         /// Tried to create a vamm with a
-        /// [`twap_period`](VammState::twap_period) smaller than the
-        /// minimum allowed one specified by
+        /// [`twap_period`](VammState::base_asset_twap) smaller than the
+        /// minimum allowed value specified by
         /// [`MINIMUM_TWAP_PERIOD`](traits::vamm::MINIMUM_TWAP_PERIOD).
         ///
         /// ## Occurrences
@@ -652,8 +676,7 @@ pub mod pallet {
         /// `O(1)`
         #[transactional]
         fn create(config: &Self::VammConfig) -> Result<T::VammId, DispatchError> {
-            // TODO(Cardosaum)
-            // How to ensure that the caller has the right privileges?
+            // TODO(Cardosaum): How to ensure that the caller has the right privileges?
             // (eg. How to ensure the caller is the Clearing House, and not anyone else?)
 
             ensure!(
@@ -665,7 +688,6 @@ pub mod pallet {
                 Error::<T>::FundingPeriodTooSmall
             );
 
-            // TODO(Cardosaum): Check if temporary VammState is still needed
             let invariant =
                 Self::compute_invariant(config.base_asset_reserves, config.quote_asset_reserves)?;
             let now = Self::now(&None);
@@ -845,7 +867,7 @@ pub mod pallet {
         /// * $twap_t$: Is the new calculated twap.
         /// * $twap_{t-1}$: Is the last twap of the asset.
         /// * $w_t$: $max(1, T_{now} - T_{last\\_update})$.
-        /// * $w_{t-1}$: $max(1, $[`twap_period`](VammState::twap_period)$ - w_t)$.
+        /// * $w_{t-1}$: $max(1, $[`twap_period`](VammState::base_asset_twap)$ - w_t)$.
         /// * $T_{now}$: current unix timestamp (ie. seconds since the Unix epoch).
         /// * $T_{last\\_update}$: timestamp from last twap update.
         ///

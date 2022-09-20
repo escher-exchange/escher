@@ -142,7 +142,10 @@ fn should_return_correct_value_add_base() {
 fn should_return_correct_value_remove_base() {
     with_swap_context(
         TestVammConfig::default(),
-        TestSwapConfig::default(),
+        TestSwapConfig {
+            output_amount_limit: QUOTE_REQUIRED_FOR_REMOVING_BASE,
+            ..Default::default()
+        },
         |_, swap_config| {
             assert_ok!(
                 TestPallet::swap_simulation(&SwapConfig {
@@ -184,7 +187,10 @@ fn should_return_correct_value_add_quote() {
 fn should_return_correct_value_remove_quote() {
     with_swap_context(
         TestVammConfig::default(),
-        TestSwapConfig::default(),
+        TestSwapConfig {
+            output_amount_limit: BASE_REQUIRED_FOR_REMOVING_QUOTE,
+            ..Default::default()
+        },
         |_, swap_config| {
             assert_ok!(
                 TestPallet::swap_simulation(&SwapConfig {

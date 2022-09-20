@@ -1,23 +1,21 @@
 use crate::{
-    mock::{Balance, Event, ExtBuilder, MockRuntime, System, TestPallet, Twap},
+    mock::{Event, ExtBuilder, MockRuntime, System, TestPallet, Twap},
     pallet::{self, Error},
     tests::{
         constants::{RUN_CASES, TWAP_PERIOD},
         helpers::{
-            any_sane_asset_amount, as_decimal, get_twap_timestamp, get_twap_value, run_for_seconds,
-            twap_update_delay,
+            any_sane_asset_amount, as_decimal, get_twap_value, run_for_seconds, twap_update_delay,
+            with_existing_vamm_context,
         },
-        helpers_propcompose::any_vamm_state,
+        helpers_propcompose::any_valid_vammconfig,
         types::{Decimal, Timestamp},
     },
     types::VammState,
 };
 use frame_support::{assert_noop, assert_ok, assert_storage_noop};
+use helpers::tests::default_acceptable_computation_error;
 use proptest::prelude::*;
-use sp_runtime::{
-    traits::{One, Saturating},
-    FixedPointNumber, FixedU128,
-};
+use sp_runtime::{traits::One, FixedPointNumber, FixedU128};
 use traits::vamm::{Vamm as VammTrait, VammConfig};
 
 // ----------------------------------------------------------------------------------------------------
@@ -194,18 +192,21 @@ fn should_update_twap_correctly() {
             twap_period: TWAP_PERIOD,
         });
         let vamm_id = vamm_creation.unwrap();
-        let original_base_twap = TestPallet::get_vamm(vamm_id).unwrap().base_asset_twap;
+        let original_base_twap = get_twap_value(&TestPallet::get_vamm(vamm_id).unwrap());
         assert_ok!(vamm_creation);
 
         // For event emission & twap update
         run_for_seconds(twap_update_delay(vamm_id));
-        let new_base_twap = Some(as_decimal(100));
-        assert_ok!(TestPallet::update_twap(vamm_id, new_base_twap));
+        let new_base_price = Some(as_decimal(100));
+        let new_base_twap_value = TestPallet::update_twap(vamm_id, new_base_price).unwrap();
         let vamm_state = TestPallet::get_vamm(vamm_id).unwrap();
-        assert_eq!(get_twap_value(&vamm_state), new_base_twap.unwrap());
+        assert_ok!(default_acceptable_computation_error(
+            get_twap_value(&vamm_state).into_inner(),
+            new_base_price.unwrap().into_inner()
+        ));
         System::assert_last_event(Event::TestPallet(pallet::Event::UpdatedTwap {
             vamm_id,
-            base_twap: new_base_twap.unwrap(),
+            base_twap: new_base_twap_value,
         }));
 
         // Run for long enough in order to approximate to the original twap value.
@@ -213,39 +214,10 @@ fn should_update_twap_correctly() {
         assert_ok!(TestPallet::update_twap(vamm_id, None));
         let vamm_state = TestPallet::get_vamm(vamm_id).unwrap();
 
-        // TODO(Cardosaum): Abstract away this complex check.
-        // Originally this check was performed as:
-        // ```
-        // assert_ok!(default_acceptable_computation_error(
-        //     vamm_state.base_asset_twap.into_inner(),
-        //     original_base_twap.into_inner(),
-        // ));
-        // ```
-        //
-        // But due to some compilation problems after moving to a separate
-        // repository this function was not available anymore.
-        //
-        // Ensure the difference between twaps is negligible.
-        assert_ok!({
-            let precison = 10000000;
-            let epsilon = 1;
-            let lower =
-                FixedU128::saturating_from_rational(precison, precison.saturating_add(epsilon));
-            let upper =
-                FixedU128::saturating_from_rational(precison, precison.saturating_sub(epsilon));
-            match FixedU128::checked_from_rational(
-                get_twap_value(&vamm_state).into_inner(),
-                original_base_twap.get_twap().into_inner(),
-            ) {
-                Some(q) =>
-                    if lower <= q && q <= upper {
-                        Ok(())
-                    } else {
-                        Err(q)
-                    },
-                None => Err(FixedU128::default()),
-            }
-        });
+        assert_ok!(default_acceptable_computation_error(
+            get_twap_value(&vamm_state).into_inner(),
+            original_base_twap.into_inner(),
+        ));
 
         System::assert_last_event(Event::TestPallet(pallet::Event::UpdatedTwap {
             vamm_id,
@@ -262,30 +234,20 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(RUN_CASES))]
     #[test]
     fn update_twap_proptest_succeeds(
-        vamm_state in any_vamm_state(),
+        vamm_config in any_valid_vammconfig(),
         base_twap in any_new_twap()
     ) {
-        let now = get_twap_timestamp(&vamm_state)
-                            .min(Timestamp::MAX/1000)
-                            .saturating_add(1);
-        let vamm_state = VammState {
-            closed: None,
-            ..vamm_state
-        };
+        with_existing_vamm_context(vamm_config.into(), || {
+            run_for_seconds(twap_update_delay(0)/1000);
+            assert_ok!(
+                TestPallet::update_twap(0, None)
+            );
 
-        ExtBuilder { vamm_count: 1, vamms: vec![(0, vamm_state)] }
-            .build()
-            .execute_with(|| {
-                run_for_seconds(twap_update_delay(0));
-                assert_ok!(
-                    TestPallet::update_twap(0, Some(base_twap)),
-                    base_twap
-                );
-
-                run_for_seconds(twap_update_delay(0));
-                assert_ok!(
-                    TestPallet::update_twap(0, None)
-                );
-            });
+            run_for_seconds(twap_update_delay(0)/1000);
+            assert_ok!(
+                TestPallet::update_twap(0, Some(base_twap)),
+                base_twap
+            );
+        })
     }
 }

@@ -31,14 +31,12 @@ pub struct VammState<Balance, Moment, Twap> {
     /// effect at the time `timestamp`.
     pub closed: Option<Moment>,
 
-    // TODO(Cardosaum): Update documentation to conform to the change to `Twap`
     /// The time weighted average price of
     /// [`base`](traits::vamm::AssetType::Base) asset w.r.t.
-    /// [`quote`](traits::vamm::AssetType::Quote) asset.  If
-    /// wanting to get `quote_asset_twap`, just call
-    /// `base_asset_twap.reciprocal()` as those values should always be
-    /// reciprocal of each other. For more information about computing the
-    /// reciprocal, please check
+    /// [`quote`](traits::vamm::AssetType::Quote) asset. If wanting to get
+    /// `quote_asset_twap`, just call `base_asset_twap.get_twap().reciprocal()`
+    /// as those values should always be reciprocal of each other. For more
+    /// information about computing the reciprocal, please check
     /// [`reciprocal`](sp_runtime::FixedPointNumber::reciprocal).
     pub base_asset_twap: Twap,
 }

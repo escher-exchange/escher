@@ -5,11 +5,8 @@ use sp_runtime::ArithmeticError::DivisionByZero;
 use sp_std::cmp::Ordering;
 use traits::vamm::{AssetType, Direction, SwapOutput};
 
-// TODO(Cardosaum): Document this struct:
-// - Why is it needed
-// - What's its purpose
-// - What does each field represent
-// - Why doing this way and not using tuples for example?
+/// Helper struct to store intermediate values during the swap computation
+/// process.
 struct CalculateSwapAsset<T: Config> {
     output_amount: T::Balance,
     input_amount: T::Balance,
@@ -18,7 +15,7 @@ struct CalculateSwapAsset<T: Config> {
 /// Stores the result of a swap operation, containing both the new values for
 /// `base` and `quote` assets as well as how much the caller would receive (or
 /// pay) in return for this specific swap.
-pub struct ComputeSwap<T: Config> {
+pub struct Output<T: Config> {
     /// The new amount of `base` asset that the vamm would contain after this
     /// swap.
     base_asset_reserves: T::Balance,
@@ -50,7 +47,7 @@ impl<T: Config> Pallet<T> {
         vamm_state: &mut VammStateOf<T>,
     ) -> Result<SwapOutputOf<T>, DispatchError> {
         // Compute new reserves of base and quote asset and swap result.
-        let ComputeSwap {
+        let Output {
             base_asset_reserves,
             quote_asset_reserves,
             swap_output,
@@ -94,7 +91,7 @@ impl<T: Config> Pallet<T> {
     pub fn compute_swap(
         config: &SwapConfigOf<T>,
         vamm_state: &VammStateOf<T>,
-    ) -> Result<ComputeSwap<T>, DispatchError> {
+    ) -> Result<Output<T>, DispatchError> {
         // Check if initial swap properties are valid.
         Self::sanity_check_before_swap(config, vamm_state)?;
 
@@ -121,14 +118,14 @@ impl<T: Config> Pallet<T> {
     fn compute_swap_quote_asset(
         config: &SwapConfigOf<T>,
         vamm_state: &VammStateOf<T>,
-    ) -> Result<ComputeSwap<T>, DispatchError> {
+    ) -> Result<Output<T>, DispatchError> {
         let quote_asset_reserve_amount = config.input_amount.try_div(&vamm_state.peg_multiplier)?;
 
         let initial_base_asset_reserve = vamm_state.base_asset_reserves;
         let swap_amount = Self::calculate_swap_asset(
             &quote_asset_reserve_amount,
             &vamm_state.quote_asset_reserves,
-            &config.direction,
+            config.direction,
             vamm_state,
         )?;
 
@@ -145,7 +142,7 @@ impl<T: Config> Pallet<T> {
             },
         };
 
-        Ok(ComputeSwap {
+        Ok(Output {
             base_asset_reserves: swap_amount.output_amount,
             quote_asset_reserves: swap_amount.input_amount,
             swap_output,
@@ -155,12 +152,12 @@ impl<T: Config> Pallet<T> {
     fn compute_swap_base_asset(
         config: &SwapConfigOf<T>,
         vamm_state: &VammStateOf<T>,
-    ) -> Result<ComputeSwap<T>, DispatchError> {
+    ) -> Result<Output<T>, DispatchError> {
         let initial_quote_asset_reserve = vamm_state.quote_asset_reserves;
         let swap_amount = Self::calculate_swap_asset(
             &config.input_amount,
             &vamm_state.base_asset_reserves,
-            &config.direction,
+            config.direction,
             vamm_state,
         )?;
         let negative = match config.direction {
@@ -171,13 +168,13 @@ impl<T: Config> Pallet<T> {
             output: Self::calculate_quote_asset_amount_swapped(
                 &initial_quote_asset_reserve,
                 &swap_amount.output_amount,
-                &config.direction,
+                config.direction,
                 vamm_state,
             )?,
             negative,
         };
 
-        Ok(ComputeSwap {
+        Ok(Output {
             base_asset_reserves: swap_amount.input_amount,
             quote_asset_reserves: swap_amount.output_amount,
             swap_output,
@@ -187,7 +184,7 @@ impl<T: Config> Pallet<T> {
     fn calculate_swap_asset(
         swap_amount: &T::Balance,
         input_asset_amount: &T::Balance,
-        direction: &Direction,
+        direction: Direction,
         vamm_state: &VammStateOf<T>,
     ) -> Result<CalculateSwapAsset<T>, DispatchError> {
         let new_input_amount = match direction {
@@ -215,7 +212,7 @@ impl<T: Config> Pallet<T> {
     fn calculate_quote_asset_amount_swapped(
         quote_asset_reserve_before: &T::Balance,
         quote_asset_reserve_after: &T::Balance,
-        direction: &Direction,
+        direction: Direction,
         vamm_state: &VammStateOf<T>,
     ) -> Result<T::Balance, DispatchError> {
         let quote_asset_reserve_change = match direction {

@@ -1,63 +1,77 @@
-//! The `TWAP` module provides a helpful type and associated methods that are
+//! The `TWAP` module provides a helper type and associated methods that are
 //! generic over the underlying `twap` and `timestamp` types used to operate on
 //! time weighted average price values.
 //!
-//! TODO(Cardosaum): Create beautifull gif showing mark price and twap.
+//! TODO(Cardosaum): Add high quality gif showing twap behaviour
 //!
-//! TODO(Cardosaum): Add list of available methods and link them here. (same as in Vamm Pallet)
+//! # Available methods
+//!
+//! - [`new`](struct.Twap.html#method.new): Creates a new [`Twap`] instance, returning it.
+//! - [`accumulate`](struct.Twap.html#method.accumulate): Updates the Twap's value using the
+//! default exponential moving average function.
+//! - [`get_twap`](struct.Twap.html#method.get_twap): Return the Twap's value.
+//! - [`set_twap`](struct.Twap.html#method.set_twap): Set the Twap's value.
+//! - [`get_timestamp`](struct.Twap.html#method.get_timestamp): Return the Twap's timestamp.
+//! - [`set_timestamp`](struct.Twap.html#method.set_timestamp): Set the Twap's timestamp.
+//! - [`get_period`](struct.Twap.html#method.get_period): Return the Twap's period.
 //!
 //! # Examples
 //!
 //! ```
-//! // Initialize some twap values.
-//! let ts = Timestamp::now();
-//! let base_twap = Twap::new(1337.0, ts);
-//! let quote_twap = Twap::new(42.0, ts)
+//! # use sp_runtime::FixedU128;
+//! # use crate::helpers::twap::Twap;
+//! // Initialize the twap value.
+//! let price = FixedU128::from_float(42.0);
+//! let timestamp: u64 = 1600000000;
+//! let period: u64 = 3600;
+//! let mut twap = Twap::new(price, timestamp, period);
 //!
 //! // Some time passes...
+//! let timestamp: u64 = 1700000000;
 //!
-//! // Update twap values according to a exponencial moving average function:
-//! let new_ts = Timestamp::now();
-//! base_twap.update(25.0, new_ts)
-//! quote_twap.update(1337.0, new_ts)
+//! // Update twap values according to a exponential moving average function.
+//! let price = FixedU128::from_float(1337.0);
+//! assert_eq!(Ok(price), twap.accumulate(&price, timestamp));
 //!
-//! // Check values
-//! // TODO(Cardosaum): Check which would be the expected twap for both
-//! // variables.
-//! assert_eq!(base_twap.twap, twap)
-//! assert_eq!(quote_twap.twap, twap)
+//! // It's also possible to update the twap value directly, as well as its timestamp.
+//! let price = FixedU128::from_float(1337.0);
+//! let timestamp: u64 = 1600000000;
+//! twap.set_twap(price);
+//! twap.set_timestamp(timestamp);
+//! assert_eq!(price, twap.get_twap());
+//! assert_eq!(timestamp, twap.get_timestamp());
 //! ```
-// TODO(Cardosaum): Expand this discription
 // Specify linters to EMA module.
-// TODO(Cardosaum): Enable all these linters
 #![cfg_attr(
-	not(test),
-	deny(
-		clippy::all,
-		clippy::cargo,
-		clippy::complexity,
-		clippy::correctness,
-		// clippy::nursery,
-		// clippy::pedantic,
-		clippy::perf,
-		// clippy::restriction,
-		clippy::style,
-		clippy::suspicious,
-		missing_docs,
-		rustdoc::missing_crate_level_docs,
-		rustdoc::missing_doc_code_examples,
-		warnings,
-	)
+    not(test),
+    deny(
+        clippy::all,
+        clippy::cargo,
+        clippy::complexity,
+        clippy::correctness,
+        clippy::pedantic,
+        clippy::perf,
+        clippy::style,
+        clippy::suspicious,
+        missing_docs,
+        rustdoc::missing_crate_level_docs,
+        rustdoc::missing_doc_code_examples,
+        warnings,
+    )
 )]
+#![allow(clippy::wildcard_imports)]
 
-// TODO(Cardosaum): Make tests, all passing
 #[cfg(test)]
 mod tests;
 
-use crate::numbers::{FixedPointMath, UnsignedMath};
+use crate::numbers::{FixedPointMath, IntoU256, UnsignedMath};
 use frame_support::pallet_prelude::*;
 use num_traits::CheckedMul;
-use sp_runtime::ArithmeticError::{self, Overflow};
+use sp_core::U256;
+use sp_runtime::{
+    traits::Saturating,
+    ArithmeticError::{self, DivisionByZero, Overflow},
+};
 use sp_std::cmp::Ord;
 
 #[cfg(feature = "std")]
@@ -70,30 +84,42 @@ use serde::{Deserialize, Serialize};
 /// working with time weighted average prices. Here is a list of all possible
 /// functions that could be used with this type and also some examples:
 ///
-/// # List of functions
+/// # Available methods
 ///
-/// // TODO(Cardosaum): Update list of functions
-/// * [`update`](Self::update): Computes new twap, returning it; Does *not*
-/// modifies storage.
-/// * [`update_mut`](Self::update_mut): Computes new twap, changing the old;
-/// *Does* modify storage.
+/// - [`new`](Self::new): Creates a new [`Twap`] instance, returning it.
+/// - [`accumulate`](Self::accumulate): Updates the Twap's value using the
+/// default exponential moving average function.
+/// - [`get_twap`](Self::get_twap): Return the Twap's value.
+/// - [`set_twap`](Self::set_twap): Set the Twap's value.
+/// - [`get_timestamp`](Self::get_timestamp): Return the Twap's timestamp.
+/// - [`set_timestamp`](Self::set_timestamp): Set the Twap's timestamp.
+/// - [`get_period`](Self::get_period): Return the Twap's period.
 ///
 /// # Examples
 ///
 /// ```
-/// // Initialize twap value.
-/// let ts = Timestamp::now();
-/// let base_twap = Twap::new(42.0, ts);
+/// # use sp_runtime::FixedU128;
+/// # use crate::helpers::twap::Twap;
+/// // Initialize the twap value.
+/// let price = FixedU128::from_float(42.0);
+/// let timestamp: u64 = 1600000000;
+/// let period: u64 = 3600;
+/// let mut twap = Twap::new(price, timestamp, period);
 ///
 /// // Some time passes...
+/// let timestamp: u64 = 1600500000;
 ///
-/// // Simulate twap update.
-/// let new_ts = Timestamp::now();
-/// let simulated_new_twap = base_twap.update(25.0, new_ts);
+/// // Update twap values according to a exponential moving average function.
+/// let price = FixedU128::from_float(1337.0);
+/// assert_eq!(Ok(price), twap.accumulate(&price, timestamp));
 ///
-/// // Actually update twap.
-/// let mut base_twap_mut = base_twap.clone();
-/// base_twap_mut.update_mut(25.0, new_ts);
+/// // It's also possible to update the twap value directly, as well as its timestamp.
+/// let price = FixedU128::from_float(1337.0);
+/// let timestamp: u64 = 1600000000;
+/// twap.set_twap(price);
+/// twap.set_timestamp(timestamp);
+/// assert_eq!(price, twap.get_twap());
+/// assert_eq!(timestamp, twap.get_timestamp());
 /// ```
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Encode, Decode, TypeInfo, MaxEncodedLen)]
 #[cfg_attr(feature = "std", derive(Serialize, Deserialize))]
@@ -103,26 +129,22 @@ pub struct Twap<FixedPoint, Moment> {
     /// The last time when the [`twap`](Self::twap) value was updated.
     ts: Moment,
     period: Moment,
-    // TODO(Cardosaum): Assess if it's better to have this values hard coded or
-    // dinamic
-    //
-    // TODO(Cardosaum): Make tests with different values for these variables and
-    // assess which would be the best value for them.
-    // since_last_min: M,
-    // from_start_min: M,
 }
 
+///  Default implementation for Twap.
+#[allow(rustdoc::missing_doc_code_examples)]
 impl<FixedPoint, Moment> Twap<FixedPoint, Moment>
 where
     FixedPoint: FixedPointMath,
-    Moment: Copy + From<u64> + Into<FixedPoint::Inner> + Ord + UnsignedMath,
+    FixedPoint::Inner: Into<u128> + From<u128>,
+    Moment: Copy + From<u64> + Into<FixedPoint::Inner> + Ord + UnsignedMath + Saturating,
 {
     /// Creates a new [`Twap`] instance, returning it.
     ///
     /// # Examples
     /// ```
     /// # use sp_runtime::FixedU128;
-    /// # use composable_maths::labs::twap::Twap;
+    /// # use crate::helpers::twap::Twap;
     /// // Set the initial twap value to `42.0`, with an initial timestamp
     /// // representing the date `Sun Sep 13 12:26:40 AM 2020`, and a period of
     /// // one hour.
@@ -139,18 +161,15 @@ where
     /// // };
     /// ```
     pub const fn new(twap: FixedPoint, ts: Moment, period: Moment) -> Self {
-        //  TODO(Cardosaum): Maybe remove this default value?
-        // let default_time = 1000; // 1 second
-        // Self { twap, ts, period, since_last_min: default_time, from_start_min: default_time }
         Self { twap, ts, period }
     }
 
-    /// Returns the Twap's value.
+    /// Return the Twap's value.
     ///
     /// # Examples
     /// ```
     /// # use sp_runtime::FixedU128;
-    /// # use composable_maths::labs::twap::Twap;
+    /// # use crate::helpers::twap::Twap;
     /// let price = FixedU128::from_float(42.0);
     /// # let timestamp: u64 = 1600000000;
     /// # let period: u64 = 3600;
@@ -163,16 +182,36 @@ where
         self.twap
     }
 
-    /// Returns the Twap's timestamp.
+    /// Set the Twap's value.
     ///
     /// # Examples
     /// ```
     /// # use sp_runtime::FixedU128;
-    /// # use composable_maths::labs::twap::Twap;
+    /// # use crate::helpers::twap::Twap;
+    /// let price = FixedU128::from_float(42.0);
+    /// # let timestamp: u64 = 1600000000;
+    /// # let period: u64 = 3600;
+    /// let mut twap = Twap::new(price, timestamp, period);
+    /// assert_eq!(twap.get_twap(), price);
+    ///
+    /// let new_price = FixedU128::from_float(1337.0);
+    /// twap.set_twap(new_price);
+    /// assert_eq!(twap.get_twap(), new_price);
+    /// ```
+    pub fn set_twap(&mut self, price: FixedPoint) -> FixedPoint {
+        self.twap = price;
+        price
+    }
+
+    /// Return the Twap's timestamp.
+    ///
+    /// # Examples
+    /// ```
+    /// # use sp_runtime::FixedU128;
+    /// # use crate::helpers::twap::Twap;
     /// # let price = FixedU128::from_float(42.0);
     /// let timestamp: u64 = 1600000000;
     /// # let period: u64 = 3600;
-    ///
     /// let twap = Twap::new(price, timestamp, period);
     ///
     /// assert_eq!(twap.get_timestamp(), timestamp);
@@ -181,13 +220,33 @@ where
         self.ts
     }
 
-    // TODO(Cardosaum): Update function documentation.
-    /// Returns the Twap's period.
+    /// Set the Twap's timestamp.
     ///
     /// # Examples
     /// ```
     /// # use sp_runtime::FixedU128;
-    /// # use composable_maths::labs::twap::Twap;
+    /// # use crate::helpers::twap::Twap;
+    /// # let price = FixedU128::from_float(42.0);
+    /// let timestamp: u64 = 1600000000;
+    /// # let period: u64 = 3600;
+    /// let mut twap = Twap::new(price, timestamp, period);
+    /// assert_eq!(twap.get_timestamp(), timestamp);
+    ///
+    /// let new_timestamp: u64 = 1700000000;
+    /// twap.set_timestamp(new_timestamp);
+    /// assert_eq!(twap.get_timestamp(), new_timestamp);
+    /// ```
+    pub fn set_timestamp(&mut self, timestamp: Moment) -> Moment {
+        self.ts = timestamp;
+        timestamp
+    }
+
+    /// Return the Twap's period.
+    ///
+    /// # Examples
+    /// ```
+    /// # use sp_runtime::FixedU128;
+    /// # use crate::helpers::twap::Twap;
     /// # let price = FixedU128::from_float(42.0);
     /// # let timestamp: u64 = 1600000000;
     /// let period: u64 = 3600;
@@ -206,7 +265,7 @@ where
     /// # Examples
     /// ```
     /// # use sp_runtime::FixedU128;
-    /// # use composable_maths::labs::twap::Twap;
+    /// # use crate::helpers::twap::Twap;
     /// # use frame_support::assert_ok;
     /// let mut price = FixedU128::from_float(42.0);
     /// let mut timestamp: u64 = 1600000000;
@@ -226,33 +285,58 @@ where
     ///
     /// # Errors
     ///
-    /// * [`ArithmeticError`]
+    /// - [`ArithmeticError`]
     pub fn accumulate(
         &mut self,
         price: &FixedPoint,
         now: Moment,
     ) -> Result<FixedPoint, ArithmeticError> {
-        // TODO(Cardosaum): Ensure time has passed before updating?
-        // maybe creating a new enum of erros would be good in this situation?
-        let since_last = now.try_sub(&self.ts)?.max(1.into());
-        match self.period.try_sub(&since_last) {
-            Ok(from_start) => self.update_mut(price, from_start, since_last, now)?,
-            _ => self.update_mut(price, 1.into(), self.period.try_sub(&1.into())?, now)?,
-        };
-
+        let since_last = now.saturating_sub(self.ts).max(1.into());
+        let from_start = self.period.saturating_sub(since_last);
+        self.update_mut(price, from_start, since_last, now)?;
         Ok(self.twap)
     }
 
-    // TODO(Cardosaum): Update function documentation.
-    // TODO(Cardosaum): Change function name (update implies the value will be mutated)
     /// This function *simulates* the [`twap`](Twap::twap) update, returning the
     /// value that would be used as the new [`twap`](Twap::twap), but **not**
     /// modifying the current value.
     ///
     /// # Errors
     ///
-    /// * [`ArithmeticError`]
+    /// - [`ArithmeticError`]
     fn update(
+        &self,
+        price: &FixedPoint,
+        from_start: Moment,
+        since_last: Moment,
+    ) -> Result<FixedPoint, ArithmeticError> {
+        self.fast_weighted_average(price, from_start, since_last)
+            .or_else(|_| self.slow_weighted_average(price, from_start, since_last))
+    }
+
+    /// This function is similar to [`update`](Self::update), but it **does**
+    /// change the current [`twap`](Twap::twap) value, and does not return
+    /// anything in case of a successfull call.
+    ///
+    /// # Errors
+    ///
+    /// - [`ArithmeticError`]
+    fn update_mut(
+        &mut self,
+        price: &FixedPoint,
+        from_start: Moment,
+        since_last: Moment,
+        ts: Moment,
+    ) -> Result<(), ArithmeticError> {
+        self.twap = self.update(price, from_start, since_last)?;
+        self.ts = ts;
+        Ok(())
+    }
+
+    // -------------------------------------------------------------------------------------------------
+    //                                         Helper Functions
+    // -------------------------------------------------------------------------------------------------
+    fn fast_weighted_average(
         &self,
         price: &FixedPoint,
         from_start: Moment,
@@ -269,28 +353,42 @@ where
         let twap_t1 = price.try_mul(&FixedPoint::from_inner(
             unit.checked_mul(&since_last.into()).ok_or(Overflow)?,
         ))?;
-
         twap_t0.try_add(&twap_t1)?.try_div(&denominator)
     }
 
-    // TODO(Cardosaum): Update function documentation.
-    // TODO(Cardosaum): `update_mut` and `update` are not good names...
-    /// This function is similar to [`update`](Self::update), but it **does**
-    /// change the current [`twap`](Twap::twap) value, and does not return
-    /// anything in case of a successfull call.
-    ///
-    /// # Errors
-    ///
-    /// * [`ArithmeticError`]
-    fn update_mut(
-        &mut self,
+    fn slow_weighted_average(
+        &self,
         price: &FixedPoint,
         from_start: Moment,
         since_last: Moment,
-        ts: Moment,
-    ) -> Result<(), ArithmeticError> {
-        self.twap = self.update(price, from_start, since_last)?;
-        self.ts = ts;
-        Ok(())
+    ) -> Result<FixedPoint, ArithmeticError> {
+        let unit: U256 = FixedPoint::DIV.into_u256();
+        let from_start: U256 = from_start.into().into_u256();
+        let since_last: U256 = since_last.into().into_u256();
+        let denominator: U256 = unit
+            .checked_mul(since_last.checked_add(from_start).ok_or(Overflow)?)
+            .ok_or(Overflow)?;
+        let twap_t0: U256 = self
+            .twap
+            .into_inner()
+            .into_u256()
+            .checked_mul(unit.checked_mul(from_start).ok_or(Overflow)?)
+            .ok_or(Overflow)?;
+        let twap_t1: U256 = price
+            .into_inner()
+            .into_u256()
+            .checked_mul(unit.checked_mul(since_last).ok_or(Overflow)?)
+            .ok_or(Overflow)?;
+        Ok(FixedPoint::from_inner(
+            u128::try_from(
+                twap_t0
+                    .checked_add(twap_t1)
+                    .ok_or(Overflow)?
+                    .checked_div(denominator)
+                    .ok_or(DivisionByZero)?,
+            )
+            .or(Err(Overflow))?
+            .into(),
+        ))
     }
 }

@@ -9,7 +9,7 @@ use crate::{
 };
 use frame_support::{assert_ok, pallet_prelude::Hooks};
 use proptest::prelude::*;
-use sp_runtime::{traits::Zero, FixedPointNumber, FixedU128};
+use sp_runtime::{traits::Zero, FixedPointNumber};
 use std::ops::RangeInclusive;
 use traits::vamm::{AssetType, Direction, SwapConfig, Vamm as VammTrait, VammConfig};
 
@@ -38,7 +38,7 @@ pub fn run_for_seconds(seconds: u64) {
         TimestampPallet::on_finalize(SystemPallet::block_number());
         SystemPallet::on_finalize(SystemPallet::block_number());
     }
-    SystemPallet::set_block_number(SystemPallet::block_number() + 1);
+    SystemPallet::set_block_number(SystemPallet::block_number().saturating_add(1));
     // Time is set in milliseconds, so we multiply the seconds by 1_000
     let _ = TimestampPallet::set(
         Origin::none(),

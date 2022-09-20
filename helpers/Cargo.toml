@@ -14,6 +14,7 @@ sp-core = { default-features = false, git = "https://github.com/paritytech/subst
 sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.27" }
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.27" }
+frame-system = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.27" }
 
 scale-info = { version = "2.1", default-features = false, features = ["derive"] }
 codec = { default-features = false, package = "parity-scale-codec", version = "3.1", features = ["derive"] }
@@ -25,7 +26,6 @@ polars = {version = "0.23.2", features = ["dtype-struct", "strings", "temporal",
 proptest = "1.0"
 proptest-derive = "0.3.0"
 rstest = "0.15.0"
-
 sp-arithmetic = { default-features = false, git = "https://github.com/paritytech/substrate" , branch = "polkadot-v0.9.27" }
 
 [features]
@@ -34,6 +34,7 @@ std = [
     "num-integer/std",
     "num-traits/std",
     "frame-support/std",
+    "frame-system/std",
     "sp-arithmetic/std",
     "sp-core/std",
     "sp-runtime/std",

@@ -23,13 +23,12 @@ use crate::{
     },
 };
 use frame_support::{assert_noop, assert_ok};
+use helpers::tests::default_acceptable_computation_error;
 use proptest::prelude::*;
 use rstest::rstest;
 use sp_core::U256;
 use sp_runtime::traits::Zero;
-use traits::vamm::{
-    AssetType, Direction, SwapConfig, SwapOutput, Vamm as VammTrait, MINIMUM_TWAP_PERIOD,
-};
+use traits::vamm::{AssetType, Direction, SwapConfig, SwapOutput, Vamm as VammTrait};
 
 // -------------------------------------------------------------------------------------------------
 //                                            Unit Tests
@@ -142,6 +141,7 @@ fn should_succeed_returning_correct_values_and_emitting_events_remove_base() {
         TestSwapConfig {
             asset: AssetType::Base,
             direction: Direction::Remove,
+            output_amount_limit: QUOTE_REQUIRED_FOR_REMOVING_BASE,
             ..Default::default()
         },
         |vamm_config, swap_config| {
@@ -194,6 +194,7 @@ fn should_succeed_returning_correct_values_and_emitting_events_remove_quote() {
         TestSwapConfig {
             asset: AssetType::Quote,
             direction: Direction::Remove,
+            output_amount_limit: BASE_REQUIRED_FOR_REMOVING_QUOTE,
             ..Default::default()
         },
         |vamm_config, swap_config| {
@@ -276,6 +277,7 @@ fn should_update_twap_when_removing_base_asset() {
         TestSwapConfig {
             asset: AssetType::Base,
             direction: Direction::Remove,
+            output_amount_limit: QUOTE_REQUIRED_FOR_REMOVING_BASE,
             ..Default::default()
         },
         |_, swap_config| {
@@ -336,6 +338,7 @@ fn should_update_twap_when_removing_quote_asset() {
         TestSwapConfig {
             asset: AssetType::Quote,
             direction: Direction::Remove,
+            output_amount_limit: BASE_REQUIRED_FOR_REMOVING_QUOTE,
             ..Default::default()
         },
         |_, swap_config| {
@@ -392,7 +395,14 @@ fn should_not_update_twap_if_current_twap_timestamp_is_more_recent() {
                 get_twap_timestamp(&vamm_state_t1),
                 get_twap_timestamp(&vamm_state_t2)
             );
-            assert_eq!(vamm_state_t1.base_asset_twap, vamm_state_t2.base_asset_twap);
+            assert_eq!(
+                get_twap_period(&vamm_state_t1),
+                get_twap_period(&vamm_state_t2)
+            );
+            assert_ok!(default_acceptable_computation_error(
+                get_twap_value(&vamm_state_t1).into_inner(),
+                get_twap_value(&vamm_state_t2).into_inner()
+            ));
         },
     );
 }
@@ -530,6 +540,7 @@ proptest! {
         // `Overflow`, `Underflow`, etc.
         swap_config.input_amount = 0;
 
+        swap_config.direction = Direction::Add;
         swap_config.output_amount_limit = Some(limit);
         swap_config.vamm_id = VammId::zero();
 
@@ -602,12 +613,6 @@ proptest! {
         // Ensure vamm is open before start operation to swap assets.
         vamm_state.closed = None;
 
-        // TODO(Cardosaum): Update checks?
-        // Ensure twap timestamp is in the past and that twap period is valid
-        // for twap updates.
-        // vamm_state.twap_timestamp = 0;
-        // vamm_state.twap_period = MINIMUM_TWAP_PERIOD.into();
-
         // Disable output limit check.
         swap_config.output_amount_limit = None;
 
@@ -621,10 +626,13 @@ proptest! {
                 match TestPallet::swap(&swap_config) {
                     Ok(_) => {
                         let vamm_state_after = TestPallet::get_vamm(0).unwrap();
-                        assert_ne!(get_twap_timestamp(&vamm_state), get_twap_timestamp(&vamm_state_after));
+                        assert_eq!(get_twap_period(&vamm_state), get_twap_period(&vamm_state_after));
+                        assert!(get_twap_timestamp(&vamm_state) <= get_twap_timestamp(&vamm_state_after));
                     },
                     _ => {
                         let vamm_state_after = TestPallet::get_vamm(0).unwrap();
+                        assert_eq!(get_twap_value(&vamm_state), get_twap_value(&vamm_state_after));
+                        assert_eq!(get_twap_period(&vamm_state), get_twap_period(&vamm_state_after));
                         assert_eq!(get_twap_timestamp(&vamm_state), get_twap_timestamp(&vamm_state_after));
                     }
                 }

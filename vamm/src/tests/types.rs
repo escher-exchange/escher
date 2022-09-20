@@ -1,5 +1,5 @@
 use crate::{
-    mock::{MockRuntime, Twap},
+    mock::MockRuntime,
     pallet,
     tests::constants::{
         BASE_ASSET_RESERVES, INPUT_AMOUNT, PEG_MULTIPLIER, QUOTE_ASSET_RESERVES, TWAP_PERIOD,

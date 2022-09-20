@@ -1,5 +1,5 @@
 use crate::{
-    types::ClosingState::{Closed, Closing},
+    types::ClosingState::{Closed, Closing, Open},
     Config, Error, Pallet, SwapConfigOf, VammStateOf,
 };
 use frame_support::pallet_prelude::*;
@@ -122,13 +122,11 @@ impl<T: Config> Pallet<T> {
         Ok(())
     }
 
-    // TODO(Cardosaum): Update documetnation to confort to the new rule of
-    // greater or equal the current timestamp
     /// Checks if the following properties hold before updating twap:
     ///
     /// * Vamm is open.
     /// * New twap value is not zero.
-    /// * Current time is greater than last twap timestamp.
+    /// * Current time is greater than or equal to the last twap timestamp.
     ///
     /// # Errors
     ///
@@ -141,8 +139,6 @@ impl<T: Config> Pallet<T> {
         now: &Option<T::Moment>,
         try_update: bool,
     ) -> Result<SanityCheckUpdateTwap, DispatchError> {
-        dbg!(&vamm_state, &current_price, &now, &try_update);
-
         // New desired twap value can't be zero.
         ensure!(!current_price.is_zero(), Error::<T>::NewTwapValueIsZero);
 
@@ -152,20 +148,15 @@ impl<T: Config> Pallet<T> {
             Error::<T>::VammIsClosed
         );
 
-        // TODO(Cardosaum): remove this check since we implemented a new logic
-        // in the twap module?
         match Self::now(now).cmp(&vamm_state.base_asset_twap.get_timestamp()) {
             Less => {
-                match try_update {
-                    true => {
-                        // Abort runtime storage update operation.
-                        Ok(SanityCheckUpdateTwap::Abort)
-                    },
-                    false => {
-                        // We need to throw an error warning caller that one
-                        // property of the swap operation was violated.
-                        Err(Error::<T>::AssetTwapTimestampIsMoreRecent.into())
-                    },
+                if try_update {
+                    // Abort runtime storage update operation.
+                    Ok(SanityCheckUpdateTwap::Abort)
+                } else {
+                    // We need to throw an error warning caller that one
+                    // property of the swap operation was violated.
+                    Err(Error::<T>::AssetTwapTimestampIsMoreRecent.into())
                 }
             },
             _ => Ok(SanityCheckUpdateTwap::Proceed),
@@ -191,7 +182,7 @@ impl<T: Config> Pallet<T> {
         match vamm_state.closing_state(&now) {
             Closed => Err(Error::<T>::VammIsClosed),
             Closing => Err(Error::<T>::VammIsClosing),
-            _ => Ok(()),
+            Open => Ok(()),
         }?;
 
         // Target closing time must be in the future

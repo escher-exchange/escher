@@ -138,6 +138,7 @@ impl pallet_vamm::Config for MockRuntime {
 #[derive(Default)]
 pub struct ExtBuilder {
     pub vamm_count: VammId,
+    #[allow(clippy::type_complexity)]
     pub vamms: Vec<(
         VammId,
         pallet_vamm::types::VammState<
