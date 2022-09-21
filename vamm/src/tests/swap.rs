@@ -516,7 +516,7 @@ proptest! {
             vamm_state,
             swap_config,
             |swap_config| {
-                run_to_block(now);
+                run_for_seconds(now);
                 assert_noop!(
                     TestPallet::swap(&swap_config),
                     Error::<MockRuntime>::VammIsClosed
