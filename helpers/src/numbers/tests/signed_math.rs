@@ -102,12 +102,14 @@ proptest! {
         op in any::<TryOp>(),
         (x, y) in x_lt_y(),
     ) {
-        match match op {
+        let output = match op {
             TryOp::Add => (x.try_add(&y), x.checked_add(y)),
             TryOp::Sub => (x.try_sub(&y), x.checked_sub(y)),
             TryOp::Mul => (x.try_mul(&y), x.checked_mul(y)),
             TryOp::Div => (x.try_div(&y), x.checked_div(y)),
-        } {
+        };
+
+        match output {
             (Ok(a), Some(b)) => {
                 assert_eq!(a, b);
             },
