@@ -1174,7 +1174,9 @@ pub mod pallet {
         /// No runtime storage item is updated by function.
         ///
         /// ## Errors
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
         /// * [`VammIsNotClosed`](Error::<T>::VammIsNotClosed)
+        /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
         ///
         /// # Runtime
         /// `O(1)`
