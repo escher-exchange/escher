@@ -4,7 +4,7 @@ use frame_support::{
     pallet_prelude::{Decode, Encode, MaxEncodedLen, TypeInfo},
     traits::UnixTime,
 };
-use helpers::numbers::{FixedPointMath, IntoBalance, IntoDecimal};
+use helpers::numbers::{FixedPointMath, TryIntoBalance, TryIntoDecimal};
 use num_traits::Zero;
 use sp_runtime::{traits::One, ArithmeticError, DispatchError, FixedPointNumber};
 use sp_std::vec::Vec;
@@ -278,7 +278,8 @@ impl<T: Config> Market<T> {
     /// Returns the current oracle price as a decimal.
     pub fn get_oracle_price(asset_id: T::MayBeAssetId) -> Result<T::Decimal, DispatchError> {
         // Oracle returns prices in USDT cents
-        let price_cents = T::Oracle::get_price(asset_id, T::Decimal::one().into_balance()?)?.price;
+        let price_cents =
+            T::Oracle::get_price(asset_id, T::Decimal::one().try_into_balance()?)?.price;
         T::Decimal::checked_from_rational(price_cents, 100)
             .ok_or_else(|| ArithmeticError::Overflow.into())
     }
@@ -391,7 +392,7 @@ impl<T: Config> AccountSummary<T> {
     pub fn new(collateral: T::Balance) -> Result<Self, DispatchError> {
         Ok(Self {
             collateral,
-            margin: collateral.into_decimal()?,
+            margin: collateral.try_into_decimal()?,
             margin_requirement_maintenance: Zero::zero(),
             margin_requirement_partial: Zero::zero(),
             base_asset_value: Zero::zero(),

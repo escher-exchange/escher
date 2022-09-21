@@ -1,9 +1,8 @@
 use crate::{
     mock::MockRuntime,
-    pallet::{self},
+    pallet,
     tests::constants::{
-        DEFAULT_BASE_ASSET_RESERVES, DEFAULT_INPUT_AMOUNT, DEFAULT_PEG_MULTIPLIER,
-        DEFAULT_QUOTE_ASSET_RESERVES, DEFAULT_TWAP_PERIOD,
+        BASE_ASSET_RESERVES, INPUT_AMOUNT, PEG_MULTIPLIER, QUOTE_ASSET_RESERVES, TWAP_PERIOD,
     },
 };
 use frame_benchmarking::Zero;
@@ -20,7 +19,7 @@ pub struct TestSwapConfig<VammId, Balance> {
     pub asset: AssetType,
     pub input_amount: Balance,
     pub direction: Direction,
-    pub output_amount_limit: Option<Balance>,
+    pub output_amount_limit: Balance,
 }
 
 impl Default for TestSwapConfig<VammId, Balance> {
@@ -28,9 +27,21 @@ impl Default for TestSwapConfig<VammId, Balance> {
         TestSwapConfig {
             vamm_id: Zero::zero(),
             asset: AssetType::Base,
-            input_amount: DEFAULT_INPUT_AMOUNT,
+            input_amount: INPUT_AMOUNT,
             direction: Direction::Add,
-            output_amount_limit: None,
+            output_amount_limit: Zero::zero(),
+        }
+    }
+}
+
+impl From<SwapConfig<VammId, Balance>> for TestSwapConfig<VammId, Balance> {
+    fn from(v: SwapConfig<VammId, Balance>) -> Self {
+        Self {
+            vamm_id: v.vamm_id,
+            asset: v.asset,
+            input_amount: v.input_amount,
+            direction: v.direction,
+            output_amount_limit: v.output_amount_limit.unwrap_or_default(),
         }
     }
 }
@@ -42,7 +53,7 @@ impl From<TestSwapConfig<VammId, Balance>> for SwapConfig<VammId, Balance> {
             asset: v.asset,
             input_amount: v.input_amount,
             direction: v.direction,
-            output_amount_limit: v.output_amount_limit,
+            output_amount_limit: Some(v.output_amount_limit),
         }
     }
 }
@@ -58,10 +69,21 @@ pub struct TestVammConfig<Balance, Moment> {
 impl Default for TestVammConfig<Balance, Timestamp> {
     fn default() -> TestVammConfig<Balance, Timestamp> {
         TestVammConfig {
-            base_asset_reserves: DEFAULT_BASE_ASSET_RESERVES,
-            quote_asset_reserves: DEFAULT_QUOTE_ASSET_RESERVES,
-            peg_multiplier: DEFAULT_PEG_MULTIPLIER,
-            twap_period: DEFAULT_TWAP_PERIOD,
+            base_asset_reserves: BASE_ASSET_RESERVES,
+            quote_asset_reserves: QUOTE_ASSET_RESERVES,
+            peg_multiplier: PEG_MULTIPLIER,
+            twap_period: TWAP_PERIOD,
+        }
+    }
+}
+
+impl From<VammConfig<Balance, Timestamp>> for TestVammConfig<Balance, Timestamp> {
+    fn from(v: VammConfig<Balance, Timestamp>) -> Self {
+        Self {
+            base_asset_reserves: v.base_asset_reserves,
+            quote_asset_reserves: v.quote_asset_reserves,
+            peg_multiplier: v.peg_multiplier,
+            twap_period: v.twap_period,
         }
     }
 }

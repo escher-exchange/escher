@@ -3,16 +3,15 @@ use crate::{
     pallet::{Error, VammMap},
     tests::{
         constants::{
-            DEFAULT_BASE_REQUIRED_FOR_REMOVING_QUOTE, DEFAULT_BASE_RETURNED_AFTER_ADDING_QUOTE,
-            DEFAULT_QUOTE_REQUIRED_FOR_REMOVING_BASE, DEFAULT_QUOTE_RETURNED_AFTER_ADDING_BASE,
-            RUN_CASES,
+            BASE_REQUIRED_FOR_REMOVING_QUOTE, BASE_RETURNED_AFTER_ADDING_QUOTE,
+            QUOTE_REQUIRED_FOR_REMOVING_BASE, QUOTE_RETURNED_AFTER_ADDING_BASE, RUN_CASES,
         },
         helpers::{run_for_seconds, with_swap_context},
         helpers_propcompose::any_swap_config,
         types::{TestSwapConfig, TestVammConfig},
     },
 };
-use frame_support::{assert_noop, assert_storage_noop};
+use frame_support::{assert_noop, assert_ok, assert_storage_noop};
 use proptest::prelude::*;
 use sp_runtime::traits::{One, Zero};
 use traits::vamm::{AssetType, Direction, SwapConfig, SwapOutput, Vamm as VammTrait};
@@ -29,7 +28,7 @@ fn should_fail_if_vamm_does_not_exist() {
             vamm_id: One::one(),
             ..Default::default()
         },
-        |swap_config| {
+        |_, swap_config| {
             assert_noop!(
                 TestPallet::swap_simulation(&swap_config),
                 Error::<MockRuntime>::VammDoesNotExist
@@ -63,7 +62,7 @@ fn should_not_modify_runtime_storage_add_base() {
     with_swap_context(
         TestVammConfig::default(),
         TestSwapConfig::default(),
-        |swap_config| {
+        |_, swap_config| {
             assert_storage_noop!(TestPallet::swap_simulation(&SwapConfig {
                 asset: AssetType::Base,
                 direction: Direction::Add,
@@ -78,7 +77,7 @@ fn should_not_modify_runtime_storage_remove_base() {
     with_swap_context(
         TestVammConfig::default(),
         TestSwapConfig::default(),
-        |swap_config| {
+        |_, swap_config| {
             assert_storage_noop!(TestPallet::swap_simulation(&SwapConfig {
                 asset: AssetType::Base,
                 direction: Direction::Remove,
@@ -93,7 +92,7 @@ fn should_not_modify_runtime_storage_add_quote() {
     with_swap_context(
         TestVammConfig::default(),
         TestSwapConfig::default(),
-        |swap_config| {
+        |_, swap_config| {
             assert_storage_noop!(TestPallet::swap_simulation(&SwapConfig {
                 asset: AssetType::Quote,
                 direction: Direction::Add,
@@ -108,7 +107,7 @@ fn should_not_modify_runtime_storage_remove_quote() {
     with_swap_context(
         TestVammConfig::default(),
         TestSwapConfig::default(),
-        |swap_config| {
+        |_, swap_config| {
             assert_storage_noop!(TestPallet::swap_simulation(&SwapConfig {
                 asset: AssetType::Quote,
                 direction: Direction::Remove,
@@ -123,18 +122,17 @@ fn should_return_correct_value_add_base() {
     with_swap_context(
         TestVammConfig::default(),
         TestSwapConfig::default(),
-        |swap_config| {
-            assert_eq!(
-                SwapOutput {
-                    output: DEFAULT_QUOTE_RETURNED_AFTER_ADDING_BASE,
-                    negative: false
-                },
+        |_, swap_config| {
+            assert_ok!(
                 TestPallet::swap_simulation(&SwapConfig {
-                    asset: AssetType::Quote,
+                    asset: AssetType::Base,
                     direction: Direction::Add,
                     ..swap_config
-                })
-                .unwrap()
+                }),
+                SwapOutput {
+                    output: QUOTE_RETURNED_AFTER_ADDING_BASE,
+                    negative: false
+                }
             );
         },
     );
@@ -144,19 +142,21 @@ fn should_return_correct_value_add_base() {
 fn should_return_correct_value_remove_base() {
     with_swap_context(
         TestVammConfig::default(),
-        TestSwapConfig::default(),
-        |swap_config| {
-            assert_eq!(
-                SwapOutput {
-                    output: DEFAULT_QUOTE_REQUIRED_FOR_REMOVING_BASE,
-                    negative: false
-                },
+        TestSwapConfig {
+            output_amount_limit: QUOTE_REQUIRED_FOR_REMOVING_BASE,
+            ..Default::default()
+        },
+        |_, swap_config| {
+            assert_ok!(
                 TestPallet::swap_simulation(&SwapConfig {
                     asset: AssetType::Base,
                     direction: Direction::Remove,
                     ..swap_config
-                })
-                .unwrap()
+                }),
+                SwapOutput {
+                    output: QUOTE_REQUIRED_FOR_REMOVING_BASE,
+                    negative: true
+                }
             );
         },
     );
@@ -167,18 +167,17 @@ fn should_return_correct_value_add_quote() {
     with_swap_context(
         TestVammConfig::default(),
         TestSwapConfig::default(),
-        |swap_config| {
-            assert_eq!(
-                SwapOutput {
-                    output: DEFAULT_BASE_RETURNED_AFTER_ADDING_QUOTE,
-                    negative: false
-                },
+        |_, swap_config| {
+            assert_ok!(
                 TestPallet::swap_simulation(&SwapConfig {
                     asset: AssetType::Quote,
                     direction: Direction::Add,
                     ..swap_config
-                })
-                .unwrap()
+                }),
+                SwapOutput {
+                    output: BASE_RETURNED_AFTER_ADDING_QUOTE,
+                    negative: false
+                }
             );
         },
     );
@@ -188,19 +187,21 @@ fn should_return_correct_value_add_quote() {
 fn should_return_correct_value_remove_quote() {
     with_swap_context(
         TestVammConfig::default(),
-        TestSwapConfig::default(),
-        |swap_config| {
-            assert_eq!(
-                SwapOutput {
-                    output: DEFAULT_BASE_REQUIRED_FOR_REMOVING_QUOTE,
-                    negative: true
-                },
+        TestSwapConfig {
+            output_amount_limit: BASE_REQUIRED_FOR_REMOVING_QUOTE,
+            ..Default::default()
+        },
+        |_, swap_config| {
+            assert_ok!(
                 TestPallet::swap_simulation(&SwapConfig {
                     asset: AssetType::Quote,
                     direction: Direction::Remove,
                     ..swap_config
-                })
-                .unwrap()
+                }),
+                SwapOutput {
+                    output: BASE_REQUIRED_FOR_REMOVING_QUOTE,
+                    negative: true
+                }
             );
         },
     );
@@ -219,9 +220,9 @@ proptest! {
         // Ensure we always perform operation on an existing vamm.
         swap_config.vamm_id = Zero::zero();
 
-        with_swap_context(TestVammConfig::default(), TestSwapConfig::default(), |swap_config| {
+        with_swap_context(TestVammConfig::default(), TestSwapConfig::default(), |_, swap_config| {
             let vamm_state_before = TestPallet::get_vamm(swap_config.vamm_id).unwrap();
-            TestPallet::swap_simulation(&swap_config);
+            assert_storage_noop!(TestPallet::swap_simulation(&swap_config));
             let vamm_state_after = TestPallet::get_vamm(swap_config.vamm_id).unwrap();
             assert_eq!(vamm_state_before, vamm_state_after);
         });

@@ -26,7 +26,7 @@ use crate::{
 };
 use composable_traits::time::ONE_HOUR;
 use frame_support::{assert_noop, assert_ok};
-use helpers::numbers::{FixedPointMath, IntoBalance, IntoDecimal, IntoSigned};
+use helpers::numbers::{FixedPointMath, TryIntoBalance, TryIntoDecimal, TryIntoSigned};
 use proptest::prelude::*;
 use sp_runtime::{FixedI128, FixedPointNumber, FixedU128, Percent};
 use traits::clearing_house::ClearingHouse;
@@ -61,7 +61,7 @@ prop_compose! {
         a_inner in 0..b.into_inner(),
         b in Just(b),
     ) -> (FixedI128, FixedI128) {
-        (FixedU128::from_inner(a_inner).into_signed().unwrap(), b.into_signed().unwrap())
+        (FixedU128::from_inner(a_inner).try_into_signed().unwrap(), b.try_into_signed().unwrap())
     }
 }
 
@@ -562,9 +562,9 @@ proptest! {
             // Reduce (close) position by desired percentage
             let base_amount_to_close = fraction.mul_floor(base_amount);
             let base_value_to_close = new_price
-                .try_mul(&base_amount_to_close.into_decimal().unwrap())
+                .try_mul(&base_amount_to_close.try_into_decimal().unwrap())
                 .unwrap()
-                .into_balance()
+                .try_into_balance()
                 .unwrap();
             let swapped = <TestPallet as ClearingHouse>::open_position(
                 &ALICE,
@@ -851,7 +851,7 @@ proptest! {
             ));
 
             // Try reversing while leaving a small resulting position in the opposite direction
-            let eps_balance: Balance = eps.into_balance().unwrap();
+            let eps_balance: Balance = eps.try_into_balance().unwrap();
             assert_ok!(TestPallet::open_position(
                 Origin::signed(ALICE),
                 market_id,

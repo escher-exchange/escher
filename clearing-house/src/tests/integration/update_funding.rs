@@ -32,7 +32,7 @@ fn should_update_oracle_twap() {
 
         assert_eq!(market.last_oracle_price, 10.into());
         assert_eq!(market.last_oracle_twap, 10.into());
-        assert_eq!(vamm.base_asset_twap, 10.into());
+        assert_eq!(get_vamm_twap_value(&vamm), 10.into());
 
         update_oracle_for(asset_id, 1_100); //  Index price = 11.0
         run_to_time(market.last_oracle_ts + config.twap_period);
@@ -83,7 +83,7 @@ fn should_update_vamm_twap() {
 
         assert_eq!(market.last_oracle_price, 10.into());
         assert_eq!(market.last_oracle_twap, 10.into());
-        assert_eq!(vamm_before.base_asset_twap, 10.into());
+        assert_eq!(get_vamm_twap_value(&vamm_before), 10.into());
 
         assert_ok!(TestPallet::open_position(
             Origin::signed(ALICE),
@@ -101,7 +101,7 @@ fn should_update_vamm_twap() {
         run_to_time(market.last_oracle_ts + config.twap_period);
         assert_ok!(TestPallet::update_funding(Origin::signed(ALICE), market_id));
         let vamm_after = get_vamm(&market.vamm_id);
-        assert!(vamm_before.base_asset_twap < vamm_after.base_asset_twap);
+        assert!(get_vamm_twap_value(&vamm_before) < get_vamm_twap_value(&vamm_after));
     })
 }
 
@@ -140,7 +140,7 @@ fn should_block_update_if_mark_index_too_divergent() {
             <Vamm as VammTrait>::get_price(market.vamm_id, AssetType::Base).unwrap(),
             111.into()
         );
-        assert_eq!(vamm.base_asset_twap, 111.into());
+        assert_eq!(get_vamm_twap_value(&vamm), 111.into());
 
         set_maximum_oracle_mark_divergence((1, 10).into());
 

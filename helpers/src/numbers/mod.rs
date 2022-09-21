@@ -75,6 +75,36 @@ pub trait UnsignedMath: CheckedAdd + CheckedDiv + CheckedMul + CheckedSub + Unsi
     }
 }
 
+pub trait SignedMath: CheckedAdd + CheckedDiv + CheckedMul + CheckedSub + Signed {
+    fn try_add(&self, other: &Self) -> Result<Self, ArithmeticError>;
+
+    fn try_sub(&self, other: &Self) -> Result<Self, ArithmeticError>;
+
+    fn try_mul(&self, other: &Self) -> Result<Self, ArithmeticError>;
+
+    fn try_div(&self, other: &Self) -> Result<Self, ArithmeticError>;
+
+    fn try_add_mut(&mut self, other: &Self) -> Result<(), ArithmeticError> {
+        *self = self.try_add(other)?;
+        Ok(())
+    }
+
+    fn try_sub_mut(&mut self, other: &Self) -> Result<(), ArithmeticError> {
+        *self = self.try_sub(other)?;
+        Ok(())
+    }
+
+    fn try_mul_mut(&mut self, other: &Self) -> Result<(), ArithmeticError> {
+        *self = self.try_mul(other)?;
+        Ok(())
+    }
+
+    fn try_div_mut(&mut self, other: &Self) -> Result<(), ArithmeticError> {
+        *self = self.try_div(other)?;
+        Ok(())
+    }
+}
+
 pub trait FixedPointMath: FixedPointNumber {
     /// Like [`sp_runtime::traits::CheckedAdd`], but returning a [`Result`] with [`ArithmeticError`]
     /// in case of failures
@@ -119,28 +149,32 @@ pub trait FixedPointMath: FixedPointNumber {
     }
 }
 
-pub trait IntoBalance<Balance> {
-    fn into_balance(self) -> Result<Balance, ArithmeticError>;
+pub trait TryIntoBalance<Balance> {
+    fn try_into_balance(self) -> Result<Balance, ArithmeticError>;
 }
 
-pub trait FromBalance<Balance>: Sized {
-    fn from_balance(value: Balance) -> Result<Self, ArithmeticError>;
+pub trait TryFromBalance<Balance>: Sized {
+    fn try_from_balance(value: Balance) -> Result<Self, ArithmeticError>;
 }
 
-pub trait IntoDecimal<D> {
-    fn into_decimal(self) -> Result<D, ArithmeticError>;
+pub trait TryIntoDecimal<D> {
+    fn try_into_decimal(self) -> Result<D, ArithmeticError>;
 }
 
-pub trait FromUnsigned<U>: Sized {
-    fn from_unsigned(value: U) -> Result<Self, ArithmeticError>;
+pub trait TryFromUnsigned<U>: Sized {
+    fn try_from_unsigned(value: U) -> Result<Self, ArithmeticError>;
 }
 
-pub trait IntoSigned<S> {
-    fn into_signed(self) -> Result<S, ArithmeticError>;
+pub trait TryIntoSigned<S> {
+    fn try_into_signed(self) -> Result<S, ArithmeticError>;
 }
 
 pub trait TryReciprocal: FixedPointNumber {
     fn try_reciprocal(self) -> Result<Self, ArithmeticError>;
+}
+
+pub trait IntoU256<T> {
+    fn into_u256(self) -> U256;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -167,6 +201,72 @@ where
 
     fn try_div(&self, other: &Self) -> Result<Self, ArithmeticError> {
         self.checked_div(other).ok_or(DivisionByZero)
+    }
+}
+
+impl<T> SignedMath for T
+where
+    T: CheckedAdd + CheckedDiv + CheckedMul + CheckedSub + Signed,
+{
+    fn try_add(&self, other: &Self) -> Result<Self, ArithmeticError> {
+        // sign(a) sign(other) | CheckedAdd
+        // --------------------------------
+        //      -1          -1 | Underflow
+        //      -1           1 | Ok
+        //       1          -1 | Ok
+        //       1           1 | Overflow
+        self.checked_add(other)
+            .ok_or_else(|| match self.is_positive() {
+                true => Overflow,
+                false => Underflow,
+            })
+    }
+
+    fn try_sub(&self, other: &Self) -> Result<Self, ArithmeticError> {
+        // sign(a) sign(other) | CheckedSub
+        // --------------------------------
+        //      -1          -1 | Ok
+        //      -1           1 | Underflow
+        //       1          -1 | Overflow
+        //       1           1 | Ok
+        self.checked_sub(other)
+            .ok_or_else(|| match self.is_positive() {
+                true => Overflow,
+                false => Underflow,
+            })
+    }
+
+    fn try_mul(&self, other: &Self) -> Result<Self, ArithmeticError> {
+        // sign(a) sign(other) | CheckedMul
+        // --------------------------------
+        //      -1          -1 | Overflow
+        //      -1           1 | Underflow
+        //       1          -1 | Underflow
+        //       1           1 | Overflow
+        self.checked_mul(other)
+            .ok_or_else(|| match self.is_negative() ^ other.is_negative() {
+                true => Underflow,
+                false => Overflow,
+            })
+    }
+
+    fn try_div(&self, other: &Self) -> Result<Self, ArithmeticError> {
+        // sign(a) sign(other) | CheckedDiv
+        // --------------------------------
+        //      -1          -1 | Overflow
+        //      -1           1 | Underflow
+        //       1          -1 | Underflow
+        //       1           1 | Overflow
+        //    -1/1           0 | DivisionByZero
+        if other.is_zero() {
+            return Err(DivisionByZero)
+        }
+
+        self.checked_div(other)
+            .ok_or_else(|| match self.is_negative() ^ other.is_negative() {
+                true => Underflow,
+                false => Overflow,
+            })
     }
 }
 
@@ -270,13 +370,13 @@ impl<T: FixedPointNumber> FixedPointMath for T {
     }
 }
 
-impl<B, D> IntoBalance<B> for D
+impl<B, D> TryIntoBalance<B> for D
 where
     B: Unsigned,
     D: FixedPointNumber,
     D::Inner: TryInto<B>,
 {
-    fn into_balance(self) -> Result<B, ArithmeticError> {
+    fn try_into_balance(self) -> Result<B, ArithmeticError> {
         self.saturating_abs()
             .into_inner()
             .try_into()
@@ -284,46 +384,46 @@ where
     }
 }
 
-impl<B, D> FromBalance<B> for D
+impl<B, D> TryFromBalance<B> for D
 where
     B: Unsigned,
     D: FixedPointNumber,
     D::Inner: TryFrom<B>,
 {
-    fn from_balance(value: B) -> Result<Self, ArithmeticError> {
+    fn try_from_balance(value: B) -> Result<Self, ArithmeticError> {
         Ok(Self::from_inner(value.try_into().map_err(|_| Overflow)?))
     }
 }
 
-impl<B, D> IntoDecimal<D> for B
+impl<B, D> TryIntoDecimal<D> for B
 where
-    D: FromBalance<B>,
+    D: TryFromBalance<B>,
 {
-    fn into_decimal(self) -> Result<D, ArithmeticError> {
-        D::from_balance(self)
+    fn try_into_decimal(self) -> Result<D, ArithmeticError> {
+        D::try_from_balance(self)
     }
 }
 
-impl<S, U> FromUnsigned<U> for S
+impl<S, U> TryFromUnsigned<U> for S
 where
     S: FixedPointNumber,
     S::Inner: Signed,
     U: FixedPointNumber,
     U::Inner: TryInto<S::Inner> + Unsigned,
 {
-    fn from_unsigned(value: U) -> Result<Self, ArithmeticError> {
+    fn try_from_unsigned(value: U) -> Result<Self, ArithmeticError> {
         Ok(Self::from_inner(
             value.into_inner().try_into().map_err(|_| Overflow)?,
         ))
     }
 }
 
-impl<S, U> IntoSigned<S> for U
+impl<S, U> TryIntoSigned<S> for U
 where
-    S: FromUnsigned<U>,
+    S: TryFromUnsigned<U>,
 {
-    fn into_signed(self) -> Result<S, ArithmeticError> {
-        S::from_unsigned(self)
+    fn try_into_signed(self) -> Result<S, ArithmeticError> {
+        S::try_from_unsigned(self)
     }
 }
 
@@ -333,6 +433,14 @@ impl<T: FixedPointNumber> TryReciprocal for T {
     }
 }
 
+impl<B> IntoU256<B> for B
+where
+    B: Into<u128>,
+{
+    fn into_u256(self) -> U256 {
+        U256::from(self.into())
+    }
+}
 // -------------------------------------------------------------------------------------------------
 //                                             Helpers
 // -------------------------------------------------------------------------------------------------

@@ -92,13 +92,26 @@
 #![cfg_attr(
     not(test),
     warn(
+        clippy::all,
+        clippy::cargo,
+        clippy::complexity,
+        clippy::correctness,
         clippy::disallowed_methods,
         clippy::disallowed_types,
+        clippy::doc_markdown,
         clippy::indexing_slicing,
+        clippy::panic,
+        clippy::pedantic,
+        clippy::perf,
+        clippy::style,
+        clippy::suspicious,
         clippy::todo,
         clippy::unwrap_used,
-        clippy::panic,
-        clippy::doc_markdown
+        missing_docs,
+        rustdoc::missing_crate_level_docs,
+        // TODO(Cardosaum): Write examples to all sections required
+        // rustdoc::missing_doc_code_examples,
+        warnings,
     )
 )]
 // Specify linters to VAMM Pallet.
@@ -123,7 +136,18 @@
     unused_comparisons,
     unused_extern_crates,
     unused_parens,
-    while_true
+    while_true,
+    rustdoc::broken_intra_doc_links
+)]
+// TODO(Cardosaum): Assess if it's possible to remove some of these allowed
+// linters in the future.
+#![allow(
+    clippy::wildcard_imports,
+    clippy::used_underscore_binding,
+    clippy::cargo_common_metadata,
+    clippy::default_trait_access,
+    clippy::must_use_candidate,
+    clippy::missing_doc_code_examples
 )]
 
 #[cfg(test)]
@@ -141,6 +165,7 @@ pub mod helpers;
 
 pub use pallet::*;
 
+#[allow(clippy::too_many_lines, clippy::let_underscore_drop)]
 #[frame_support::pallet]
 pub mod pallet {
     // ----------------------------------------------------------------------------------------------------
@@ -152,13 +177,13 @@ pub mod pallet {
     use frame_support::{
         pallet_prelude::*, sp_std::fmt::Debug, traits::UnixTime, transactional, Blake2_128Concat,
     };
-    use helpers::numbers::TryReciprocal;
+    use helpers::{numbers::TryReciprocal, twap::Twap};
     use num_integer::Integer;
     use sp_arithmetic::traits::Unsigned;
     use sp_core::U256;
     use sp_runtime::{
         traits::{AtLeast32BitUnsigned, CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, One, Zero},
-        ArithmeticError, FixedPointNumber,
+        ArithmeticError, FixedPointNumber, FixedU128,
     };
     use traits::vamm::{
         AssetType, Direction, MovePriceConfig, SwapConfig, SwapOutput, Vamm, VammConfig,
@@ -211,6 +236,7 @@ pub mod pallet {
             + From<u64>
             + From<u128>
             + Into<u128>
+            + From<Self::Moment>
             + MaxEncodedLen
             + MaybeSerializeDeserialize
             + Ord
@@ -227,6 +253,8 @@ pub mod pallet {
             + One
             + TryReciprocal
             + TypeInfo
+            + Into<FixedU128>
+            + From<FixedU128>
             + Zero;
 
         /// The Integer type used by the pallet for computing swaps.
@@ -259,9 +287,11 @@ pub mod pallet {
     /// Type alias for the [`SwapConfig`] value of the Vamm Pallet.
     pub type SwapConfigOf<T> = SwapConfig<<T as Config>::VammId, <T as Config>::Balance>;
 
+    /// Type alias for the [`Twap`] value of the Vamm Pallet.
+    pub type TwapOf<T> = Twap<<T as Config>::Decimal, <T as Config>::Moment>;
+
     /// Type alias for the [`VammState`] value of the Vamm Pallet.
-    pub type VammStateOf<T> =
-        VammState<<T as Config>::Balance, <T as Config>::Moment, <T as Config>::Decimal>;
+    pub type VammStateOf<T> = VammState<<T as Config>::Balance, <T as Config>::Moment, TwapOf<T>>;
 
     // ----------------------------------------------------------------------------------------------------
     //                                           Runtime  Storage
@@ -411,20 +441,6 @@ pub mod pallet {
         /// * [`Pallet::close`]
         /// * [`Pallet::get_vamm_state`]
         VammDoesNotExist,
-        /// Tried to retrieve a Vamm but the function failed.
-        ///
-        /// ## Occurrences
-        ///
-        /// * [`Pallet::get_price`]
-        /// * [`Pallet::get_twap`]
-        /// * [`Pallet::update_twap`]
-        /// * [`Pallet::swap`]
-        /// * [`Pallet::swap_simulation`]
-        /// * [`Pallet::move_price`]
-        /// * [`Pallet::close`]
-        /// * [`Pallet::do_swap`]
-        /// * [`Pallet::get_vamm_state`]
-        FailToRetrieveVamm,
         /// Tried to execute a trade but the Vamm didn't have enough funds to
         /// fulfill it.
         ///
@@ -490,16 +506,6 @@ pub mod pallet {
         /// * [`Pallet::compute_swap`]
         /// * [`Pallet::sanity_check_after_swap`]
         SwappedAmountMoreThanMaximumLimit,
-        /// Tried to derive invariant from [`base`](VammState::base_asset_reserves) and
-        /// [`quote`](VammState::quote_asset_reserves) asset, but the
-        /// computation was not successful.
-        ///
-        /// ## Occurrences
-        ///
-        /// * [`Pallet::create`]
-        /// * [`Pallet::move_price`]
-        /// * [`Pallet::compute_invariant`]
-        FailedToDeriveInvariantFromBaseAndQuoteAsset,
         /// Tried to perform swap operation but it would drain all
         /// [`base`](VammState::base_asset_reserves) asset reserves.
         ///
@@ -540,9 +546,18 @@ pub mod pallet {
         /// * [`Pallet::do_update_twap`]
         /// * [`Pallet::sanity_check_before_update_twap`]
         NewTwapValueIsZero,
+        /// Tried to update twap value, but a function call responsible for
+        /// returning a new twap value didn't do so. As the called function
+        /// should return a value always, not doing so must be an error.
+        ///
+        /// ## Occurrences
+        ///
+        /// * [`Pallet::update_twap`]
+        /// * [`Pallet::do_update_twap`]
+        InternalUpdateTwapDidNotReturnValue,
         /// Tried to create a vamm with a
-        /// [`twap_period`](VammState::twap_period) smaller than the
-        /// minimum allowed one specified by
+        /// [`twap_period`](VammState::base_asset_twap) smaller than the
+        /// minimum allowed value specified by
         /// [`MINIMUM_TWAP_PERIOD`](traits::vamm::MINIMUM_TWAP_PERIOD).
         ///
         /// ## Occurrences
@@ -654,7 +669,6 @@ pub mod pallet {
         /// * [`Error::<T>::QuoteAssetReserveIsZero`]
         /// * [`Error::<T>::InvariantIsZero`]
         /// * [`Error::<T>::PegMultiplierIsZero`]
-        /// * [`Error::<T>::FailedToDeriveInvariantFromBaseAndQuoteAsset`]
         /// * [`Error::<T>::FundingPeriodTooSmall`]
         /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
         ///
@@ -662,10 +676,6 @@ pub mod pallet {
         /// `O(1)`
         #[transactional]
         fn create(config: &Self::VammConfig) -> Result<T::VammId, DispatchError> {
-            // TODO(Cardosaum)
-            // How to ensure that the caller has the right privileges?
-            // (eg. How to ensure the caller is the Clearing House, and not anyone else?)
-
             ensure!(
                 !config.peg_multiplier.is_zero(),
                 Error::<T>::PegMultiplierIsZero
@@ -690,11 +700,13 @@ pub mod pallet {
                 let vamm_state = VammStateOf::<T> {
                     base_asset_reserves: config.base_asset_reserves,
                     quote_asset_reserves: config.quote_asset_reserves,
-                    base_asset_twap: Self::do_get_price(&tmp_vamm_state, AssetType::Base)?,
-                    twap_timestamp: now,
+                    base_asset_twap: Twap::new(
+                        Self::do_get_price(&tmp_vamm_state, AssetType::Base)?,
+                        now,
+                        config.twap_period,
+                    ),
                     peg_multiplier: config.peg_multiplier,
                     invariant,
-                    twap_period: config.twap_period,
                     closed: None,
                 };
 
@@ -747,7 +759,6 @@ pub mod pallet {
         ///
         /// ## Errors
         /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::VammIsClosed`]
         /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
         /// * [`ArithmeticError::DivisionByZero`](sp_runtime::ArithmeticError)
@@ -804,7 +815,6 @@ pub mod pallet {
         ///
         /// ## Errors
         /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::VammIsClosed`]
         ///
         /// # Runtime
@@ -825,8 +835,8 @@ pub mod pallet {
             );
 
             match asset_type {
-                AssetType::Base => Ok(vamm_state.base_asset_twap),
-                AssetType::Quote => Ok(vamm_state.base_asset_twap.try_reciprocal()?),
+                AssetType::Base => Ok(vamm_state.base_asset_twap.get_twap()),
+                AssetType::Quote => Ok(vamm_state.base_asset_twap.get_twap().try_reciprocal()?),
             }
         }
 
@@ -854,7 +864,7 @@ pub mod pallet {
         /// * $twap_t$: Is the new calculated twap.
         /// * $twap_{t-1}$: Is the last twap of the asset.
         /// * $w_t$: $max(1, T_{now} - T_{last\\_update})$.
-        /// * $w_{t-1}$: $max(1, $[`twap_period`](VammState::twap_period)$ - w_t)$.
+        /// * $w_{t-1}$: $max(1, $[`twap_period`](VammState::base_asset_twap)$ - w_t)$.
         /// * $T_{now}$: current unix timestamp (ie. seconds since the Unix epoch).
         /// * $T_{last\\_update}$: timestamp from last twap update.
         ///
@@ -886,7 +896,6 @@ pub mod pallet {
         ///
         /// ## Errors
         /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::VammIsClosed`]
         /// * [`Error::<T>::NewTwapValueIsZero`]
         /// * [`Error::<T>::AssetTwapTimestampIsMoreRecent`]
@@ -904,16 +913,16 @@ pub mod pallet {
             // Retrieve vamm state.
             let mut vamm_state = Self::get_vamm_state(&vamm_id)?;
 
-            // Handle optional value.
-            let base_twap = Self::handle_base_twap(base_twap, &vamm_state)?;
-
             // Delegate update twap to internal functions.
-            Self::do_update_twap(vamm_id, &mut vamm_state, base_twap, &None)?;
+            let output = Self::do_update_twap(vamm_id, &mut vamm_state, base_twap, &None)?;
 
             // Deposit updated twap event into blockchain.
-            Self::deposit_event(Event::<T>::UpdatedTwap { vamm_id, base_twap });
+            Self::deposit_event(Event::<T>::UpdatedTwap {
+                vamm_id,
+                base_twap: output,
+            });
 
-            Ok(base_twap)
+            Ok(output)
         }
 
         /// Performs the swap of the desired asset against the vamm.
@@ -956,7 +965,6 @@ pub mod pallet {
         ///
         /// ## Errors
         /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::VammIsClosed`]
         /// * [`Error::<T>::InsufficientFundsForTrade`]
         /// * [`Error::<T>::TradeExtrapolatesMaximumSupportedAmount`]
@@ -975,20 +983,8 @@ pub mod pallet {
             // Get Vamm state.
             let mut vamm_state = Self::get_vamm_state(&config.vamm_id)?;
 
-            // Perform twap update before swapping assets.
-            //
-            // HACK: Find a better way to extract and match this message value
-            // from `Result`.
-            match Self::update_twap(config.vamm_id, None) {
-                Ok(_) => Ok(()),
-                Err(e) => match e {
-                    DispatchError::Module(m) => match m.message {
-                        Some("AssetTwapTimestampIsMoreRecent") => Ok(()),
-                        _ => Err(e),
-                    },
-                    _ => Err(e),
-                },
-            }?;
+            // Tries to update twap before swapping assets.
+            Self::try_update_twap(config.vamm_id, &mut vamm_state, None, &None)?;
 
             // Delegate swap to helper function.
             let amount_swapped = Self::do_swap(config, &mut vamm_state)?;
@@ -1011,11 +1007,11 @@ pub mod pallet {
         ///  - `config`: Specification for swaps.
         ///
         /// ## Returns
-        /// The asset amount taking into account slippage and price move due to
-        /// trade size.
+        /// The *expected* asset amount returned after a swap, taking into
+        /// account slippage due to trade size.
         ///
         /// ## Assumptions or Requirements
-        /// * The requested [`VammId`](Config::VammId) must exists.
+        /// * The requested [`VammId`](Config::VammId) must exist.
         /// * The requested Vamm must be open.
         /// * The desired swap amount can not exceed the maximum supported value
         /// for the Vamm.
@@ -1028,7 +1024,6 @@ pub mod pallet {
         ///
         /// ## Errors
         /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::VammIsClosed`]
         /// * [`Error::<T>::InsufficientFundsForTrade`]
         /// * [`Error::<T>::BaseAssetReservesWouldBeCompletelyDrained`]
@@ -1099,12 +1094,10 @@ pub mod pallet {
         ///
         /// ## Errors
         /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::VammIsClosed`]
         /// * [`Error::<T>::BaseAssetReserveIsZero`]
         /// * [`Error::<T>::QuoteAssetReserveIsZero`]
         /// * [`Error::<T>::InvariantIsZero`]
-        /// * [`Error::<T>::FailedToDeriveInvariantFromBaseAndQuoteAsset`]
         ///
         /// # Runtime
         /// `O(1)`
@@ -1187,7 +1180,6 @@ pub mod pallet {
         /// * [`Error::<T>::VammDoesNotExist`]
         /// * [`Error::<T>::VammIsClosed`]
         /// * [`Error::<T>::VammIsClosing`]
-        /// * [`Error::<T>::FailToRetrieveVamm`]
         /// * [`Error::<T>::ClosingDateIsInThePast`]
         ///
         /// # Runtime
@@ -1206,7 +1198,7 @@ pub mod pallet {
                     v.closed = Some(closing_time);
                     Ok(())
                 },
-                None => Err(Error::<T>::FailToRetrieveVamm),
+                None => Err(Error::<T>::VammDoesNotExist),
             })?;
 
             // Emit event.

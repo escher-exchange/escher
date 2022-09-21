@@ -62,7 +62,7 @@ proptest! {
             assert_eq!(vamm_state.base_asset_reserves, vamm_config.base_asset_reserves);
             assert_eq!(vamm_state.quote_asset_reserves, vamm_config.quote_asset_reserves);
             assert_eq!(vamm_state.peg_multiplier, vamm_config.peg_multiplier);
-            assert_eq!(vamm_state.twap_period, vamm_config.twap_period);
+            assert_eq!(vamm_state.base_asset_twap.get_period(), vamm_config.twap_period);
             assert_eq!(vamm_state.invariant, invariant);
             assert_eq!(TestPallet::vamm_count(), vamm_counter+1);
         });

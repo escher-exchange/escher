@@ -8,7 +8,7 @@ use frame_support::{
     traits::{Everything, GenesisBuild},
     PalletId,
 };
-// use frame_system::{EnsureRoot, EnsureSignedBy};
+use helpers::twap::Twap as HelperTwap;
 use sp_core::{sr25519::Signature, H256};
 use sp_runtime::{
     testing::Header,
@@ -41,6 +41,7 @@ pub type BlockNumber = u64;
 pub type VammId = u128;
 pub type Integer = i128;
 pub type Moment = u64;
+pub type Twap = HelperTwap<FixedU128, u64>;
 
 // ----------------------------------------------------------------------------------------------------
 //                                                FRAME System
@@ -137,12 +138,13 @@ impl pallet_vamm::Config for MockRuntime {
 #[derive(Default)]
 pub struct ExtBuilder {
     pub vamm_count: VammId,
+    #[allow(clippy::type_complexity)]
     pub vamms: Vec<(
         VammId,
         pallet_vamm::types::VammState<
             <MockRuntime as pallet_vamm::Config>::Balance,
             <MockRuntime as pallet_vamm::Config>::Moment,
-            <MockRuntime as pallet_vamm::Config>::Decimal,
+            Twap,
         >,
     )>,
 }
