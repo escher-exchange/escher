@@ -545,7 +545,7 @@ proptest! {
             // Alice can't realize her PnL based on the index price, but she should be owed the same
             // amount in funding payments. However, Bob's position + the Fee Pool cannot cover the
             // whole amount, so she is paid less
-            let bob_and_fees = bob_funding + initial_fee_pool.into_decimal().unwrap();
+            let bob_and_fees = bob_funding + initial_fee_pool.try_into_decimal().unwrap();
             let alice_funding = TestPallet::unrealized_funding(
                 &market,
                 &get_position(&ALICE, &market_id)
