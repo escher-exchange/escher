@@ -24,7 +24,7 @@ use helpers::numbers::{FixedPointMath, TryFromBalance, TryFromUnsigned, TryIntoD
 use proptest::prelude::*;
 use sp_runtime::{FixedI128, FixedU128};
 use traits::{
-    clearing_house::{ClearingHouse, Instruments},
+    clearing_house::ClearingHouse,
     vamm::{AssetType, Vamm},
 };
 
@@ -536,7 +536,7 @@ proptest! {
             // Bob owes 5% of his position in funding
             let bob_funding = FixedI128::try_from_balance(bob_position / 20).unwrap();
             assert_eq!(
-                <TestPallet as Instruments>::unrealized_funding(
+                TestPallet::unrealized_funding(
                     &market,
                     &get_position(&BOB, &market_id)
                 ).unwrap(),
@@ -545,8 +545,8 @@ proptest! {
             // Alice can't realize her PnL based on the index price, but she should be owed the same
             // amount in funding payments. However, Bob's position + the Fee Pool cannot cover the
             // whole amount, so she is paid less
-            let bob_and_fees = bob_funding + initial_fee_pool.try_into_decimal().unwrap();
-            let alice_funding = <TestPallet as Instruments>::unrealized_funding(
+            let bob_and_fees = bob_funding + initial_fee_pool.into_decimal().unwrap();
+            let alice_funding = TestPallet::unrealized_funding(
                 &market,
                 &get_position(&ALICE, &market_id)
             ).unwrap();

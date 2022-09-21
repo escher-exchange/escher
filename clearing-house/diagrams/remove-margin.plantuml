@@ -3,7 +3,6 @@
 
 actor "Trader" as user
 participant "Clearing\nHouse" as ch
-participant "Risk\nEngine" as risk
 database "Collateral" as accs
 database "Positions" as positions
 database "Markets" as mkts
@@ -14,11 +13,11 @@ user -> ch : ""remove_margin""
 
 == Validity checks ==
 
-ch -> risk ++: ""risk_free_collateral""
-    risk -[#green]> accs : get margin
-    risk -[#green]> positions : get all user positions
-    risk -[#green]> mkts : get all markets invested
-    risk -[#green]> price : get prices
+ch -> ch ++: ""risk_free_collateral""
+    ch -[#green]> accs : get margin
+    ch -[#green]> positions : get all user positions
+    ch -[#green]> mkts : get all markets invested
+    ch -[#green]> price : get prices
 return free collateral
 
 ch -> ch: ensure requested amount <\nfree collateral

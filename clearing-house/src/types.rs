@@ -1,5 +1,5 @@
-use crate::{Config, MarketConfigOf};
-use composable_traits::oracle::Oracle;
+use crate::Config;
+use composable_traits::{defi::DeFiComposableConfig, oracle::Oracle};
 use frame_support::{
     pallet_prelude::{Decode, Encode, MaxEncodedLen, TypeInfo},
     traits::UnixTime,
@@ -8,10 +8,37 @@ use helpers::numbers::{FixedPointMath, TryIntoBalance, TryIntoDecimal};
 use num_traits::Zero;
 use sp_runtime::{traits::One, ArithmeticError, DispatchError, FixedPointNumber};
 use sp_std::vec::Vec;
-use traits::vamm::{Direction as VammDirection, Vamm};
+use traits::vamm::{Direction as VammDirection, SwapConfig, Vamm};
 use Direction::{Long, Short};
 
 pub const BASIS_POINT_DENOMINATOR: u32 = 10_000;
+
+// --------------------------------------------------------------------------------------------------
+//                                      Pallet Types
+// --------------------------------------------------------------------------------------------------
+
+#[allow(missing_docs)]
+pub type AssetIdOf<T> = <T as DeFiComposableConfig>::MayBeAssetId;
+#[allow(missing_docs)]
+pub type BalanceOf<T> = <T as DeFiComposableConfig>::Balance;
+#[allow(missing_docs)]
+pub type DecimalOf<T> = <T as Config>::Decimal;
+#[allow(missing_docs)]
+pub type MomentOf<T> = <T as Config>::Moment;
+#[allow(missing_docs)]
+pub type VammConfigOf<T> = <T as Config>::VammConfig;
+#[allow(missing_docs)]
+pub type VammIdOf<T> = <T as Config>::VammId;
+#[allow(missing_docs)]
+pub type SwapConfigOf<T> = SwapConfig<VammIdOf<T>, BalanceOf<T>>;
+#[allow(missing_docs)]
+pub type MarketConfigOf<T> =
+    MarketConfig<AssetIdOf<T>, BalanceOf<T>, DecimalOf<T>, MomentOf<T>, VammConfigOf<T>>;
+#[allow(missing_docs)]
+pub type TradeResultOf<T> = Result<(BalanceOf<T>, DecimalOf<T>, DecimalOf<T>), DispatchError>;
+
+// ---------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------
 
 /// Indicates the direction of a position
 #[derive(Encode, Decode, TypeInfo, Debug, Clone, Copy, PartialEq, Eq)]
