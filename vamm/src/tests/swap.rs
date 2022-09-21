@@ -429,8 +429,6 @@ fn should_update_twap_if_twap_period_has_passed(#[case] delta: Timestamp) {
             let vamm_state_t0 = TestPallet::get_vamm(0).unwrap();
             run_for_seconds(delta.saturating_add(get_twap_period(&vamm_state_t0)));
             assert_ok!(TestPallet::swap(&swap_config));
-            run_for_seconds(delta.saturating_add(get_twap_period(&vamm_state_t0)));
-            assert_ok!(TestPallet::swap(&swap_config));
             let vamm_state_t1 = TestPallet::get_vamm(0).unwrap();
             assert_ne!(
                 get_twap_timestamp(&vamm_state_t0),
