@@ -1144,6 +1144,40 @@ pub mod pallet {
             Ok(invariant)
         }
 
+        /// Computes the price to settle positions against after a vAMM has been closed.
+        ///
+        /// # Overview
+        /// After trading against a vAMM is halted, users can only close their positions at a
+        /// pre-computed settlement price. This function computes that settlement price after a vAMM
+        /// is closed. It takes into account the net position of all traders left after vAMM
+        /// closure. The settlement price is higher the more distant the reserves are from
+        /// their terminal values. This price is the average execution price if a single
+        /// trade took the vAMM from its terminal reserves to their current values. Traders
+        /// who have a higher average execution price lose money and those who have a lower
+        /// one, win. The settlement price is 0 if the vAMM ended up closing at terminal
+        /// reserve values.
+        ///
+        /// ## Parameters:
+        /// * `vamm_id`: identifier for the closed vAMM
+        ///
+        /// ## Returns
+        /// The settlement price as an unsigned decimal.
+        ///
+        /// ## Assumptions or Requirements
+        /// * The vAMM with id `vamm_id` must exist
+        /// * The vAMM with id `vamm_id` must be closed
+        ///
+        /// ## Emits
+        /// No event is emitted for this function.
+        ///
+        /// ## State Changes
+        /// No runtime storage item is updated by function.
+        ///
+        /// ## Errors
+        /// * [`VammIsNotClosed`](Error::<T>::VammIsNotClosed)
+        ///
+        /// # Runtime
+        /// `O(1)`
         fn get_settlement_price(vamm_id: Self::VammId) -> Result<Self::Decimal, DispatchError> {
             let vamm_state = Self::get_vamm_state(&vamm_id)?;
             ensure!(
