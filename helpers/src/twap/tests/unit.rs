@@ -330,7 +330,7 @@ fn should_succeed_setting_and_retrieving_values() {
 #[case(5 * DAY, 12)]
 #[case(6 * DAY, 12)]
 #[case(7 * DAY, 12)]
-#[ignore = "Still need to configure flag to run this test as this \
+#[ignore = "TODO: Still need to configure flag to run this test as this \
             one takes quite a while and is not meant to be run every time"]
 fn test_polars(#[case] period: u64, #[case] dataset: i32) {
     let mut twap: Option<Twap<FixedU128, u64>> = None;

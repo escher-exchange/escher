@@ -181,8 +181,6 @@ fn should_succeed_with_two_traders_in_a_market() {
 }
 
 #[test]
-// #[ignore = "FIXME: vAMM TWAP isn't updated if last twap timestamp is equal to the current \
-// block's timestamp"]
 fn should_update_vamm_twap_in_the_same_block() {
     ExtBuilder {
         balances: vec![(ALICE, USDC, UNIT * 100)],
