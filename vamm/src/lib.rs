@@ -1153,6 +1153,8 @@ pub mod pallet {
         /// one, win. The settlement price is 0 if the vAMM ended up closing at terminal
         /// reserve values.
         ///
+        /// ![](https://www.plantuml.com/plantuml/svg/BSqn3i8m34RXdLF00QXtfjwaCkvF4Ybs8yS6ZWz2J4zl-jOPx97QJvTcqdD7UZ_NY35lHCwlfRIeUSy9byC25eiSIfXIuLUyfR8L_9-Kcz6JLMblN9nrqYDDeXss5SGs4T6XiDY6Dy4oEjkFNs7xjny0)
+        ///
         /// ## Parameters:
         /// * `vamm_id`: identifier for the closed vAMM
         ///
