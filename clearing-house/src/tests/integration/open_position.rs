@@ -214,7 +214,7 @@ fn should_update_vamm_twap_in_the_same_block() {
         let market = get_market(&market_id);
         let vamm_before = get_vamm(&market.vamm_id);
 
-        assert_eq!(get_vammm_twap_value(&vamm_before), 10.into());
+        assert_eq!(get_vamm_twap_value(&vamm_before), 10.into());
 
         assert_ok!(TestPallet::open_position(
             Origin::signed(ALICE),
@@ -238,7 +238,7 @@ fn should_update_vamm_twap_in_the_same_block() {
         ));
         let vamm_after = get_vamm(&market.vamm_id);
         // now the vAMM picks up the change caused by the previous swap
-        assert!(get_vammm_twap_value(&vamm_before) < get_vammm_twap_value(&vamm_after));
+        assert!(get_vamm_twap_value(&vamm_before) < get_vamm_twap_value(&vamm_after));
     })
 }
 
@@ -276,7 +276,7 @@ fn should_update_vamm_twap_across_blocks() {
         let market = get_market(&market_id);
         let vamm_before = get_vamm(&market.vamm_id);
 
-        assert_eq!(get_vammm_twap_value(&vamm_before), 10.into());
+        assert_eq!(get_vamm_twap_value(&vamm_before), 10.into());
 
         assert_ok!(TestPallet::open_position(
             Origin::signed(ALICE),
@@ -302,6 +302,6 @@ fn should_update_vamm_twap_across_blocks() {
         ));
         let vamm_after = get_vamm(&market.vamm_id);
         // now the vAMM picks up the change caused by the previous swap
-        assert!(get_vammm_twap_value(&vamm_before) < get_vammm_twap_value(&vamm_after));
+        assert!(get_vamm_twap_value(&vamm_before) < get_vamm_twap_value(&vamm_after));
     })
 }

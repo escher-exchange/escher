@@ -121,7 +121,7 @@ fn get_vamm(vamm_id: &VammId) -> VammStateOf<Runtime> {
     Vamm::get_vamm(vamm_id).unwrap()
 }
 
-fn get_vammm_twap_value(vamm_state: &VammStateOf<Runtime>) -> FixedU128 {
+fn get_vamm_twap_value(vamm_state: &VammStateOf<Runtime>) -> FixedU128 {
     vamm_state.base_asset_twap.get_twap()
 }
 
