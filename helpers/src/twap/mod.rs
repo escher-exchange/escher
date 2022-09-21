@@ -79,9 +79,9 @@ mod tests;
 /// The [`Twap`] value itself, storing both the underlying time weighted average
 /// price and its most recent timestamp.
 ///
-/// The [`Twap`] type implement some convinience methods to facilitate when
-/// working with time weighted average prices. Here is a list of all possible
-/// functions that could be used with this type and also some examples:
+/// The [`Twap`] type implements some convenience methods to facilitate working
+/// with time weighted average prices. Here is a list of all possible functions
+/// that could be used with this type and also some examples:
 ///
 /// # Available methods
 ///
