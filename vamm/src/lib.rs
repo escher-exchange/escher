@@ -676,9 +676,6 @@ pub mod pallet {
         /// `O(1)`
         #[transactional]
         fn create(config: &Self::VammConfig) -> Result<T::VammId, DispatchError> {
-            // TODO(Cardosaum): How to ensure that the caller has the right privileges?
-            // (eg. How to ensure the caller is the Clearing House, and not anyone else?)
-
             ensure!(
                 !config.peg_multiplier.is_zero(),
                 Error::<T>::PegMultiplierIsZero

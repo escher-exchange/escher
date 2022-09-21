@@ -41,7 +41,6 @@
 //! assert_eq!(price, twap.get_twap());
 //! assert_eq!(timestamp, twap.get_timestamp());
 //! ```
-// Specify linters to EMA module.
 #![cfg_attr(
     not(test),
     deny(
@@ -80,7 +79,7 @@ use serde::{Deserialize, Serialize};
 /// The [`Twap`] value itself, storing both the underlying time weighted average
 /// price and its most recent timestamp.
 ///
-/// The [`Twap`] type implement several convinience methods to facilitate when
+/// The [`Twap`] type implement some convinience methods to facilitate when
 /// working with time weighted average prices. Here is a list of all possible
 /// functions that could be used with this type and also some examples:
 ///
