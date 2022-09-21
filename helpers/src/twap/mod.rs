@@ -60,9 +60,6 @@
 )]
 #![allow(clippy::wildcard_imports)]
 
-#[cfg(test)]
-mod tests;
-
 use crate::numbers::{FixedPointMath, IntoU256, UnsignedMath};
 use frame_support::pallet_prelude::*;
 use num_traits::CheckedMul;
@@ -75,6 +72,9 @@ use sp_std::cmp::Ord;
 
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
+
+#[cfg(test)]
+mod tests;
 
 /// The [`Twap`] value itself, storing both the underlying time weighted average
 /// price and its most recent timestamp.
