@@ -672,12 +672,13 @@ pub mod pallet {
         /// Updates [`VammMap`] storage map and [`VammCounter`] storage value.
         ///
         /// ## Errors
-        /// * [`Error::<T>::BaseAssetReserveIsZero`]
-        /// * [`Error::<T>::QuoteAssetReserveIsZero`]
-        /// * [`Error::<T>::InvariantIsZero`]
-        /// * [`Error::<T>::PegMultiplierIsZero`]
-        /// * [`Error::<T>::FundingPeriodTooSmall`]
-        /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
+        /// * [`BaseAssetReserveIsZero`](Error::<T>::BaseAssetReserveIsZero)
+        /// * [`QuoteAssetReserveIsZero`](Error::<T>::QuoteAssetReserveIsZero)
+        /// * [`InvariantIsZero`](Error::<T>::InvariantIsZero)
+        /// * [`PegMultiplierIsZero`](Error::<T>::PegMultiplierIsZero)
+        /// * [`FailedToDeriveInvariantFromBaseAndQuoteAsset`](Error::<T>::FailedToDeriveInvariantFromBaseAndQuoteAsset)
+        /// * [`FundingPeriodTooSmall`](Error::<T>::FundingPeriodTooSmall)
+        /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
         ///
         /// # Runtime
         /// `O(1)`
@@ -767,10 +768,10 @@ pub mod pallet {
         /// This function does not mutate runtime storage.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
-        /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::DivisionByZero`](sp_runtime::ArithmeticError)
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`FailToRetrieveVamm`](Error::<T>::FailToRetrieveVamm)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
+        /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
         ///
         /// # Runtime
         /// `O(1)`
@@ -823,8 +824,8 @@ pub mod pallet {
         /// This function does not mutate runtime storage.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
         ///
         /// # Runtime
         /// `O(1)`
@@ -904,13 +905,11 @@ pub mod pallet {
         /// Updates [`VammMap`] storage map.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
-        /// * [`Error::<T>::NewTwapValueIsZero`]
-        /// * [`Error::<T>::AssetTwapTimestampIsMoreRecent`]
-        /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::Underflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::DivisionByZero`](sp_runtime::ArithmeticError)
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
+        /// * [`NewTwapValueIsZero`](Error::<T>::NewTwapValueIsZero)
+        /// * [`AssetTwapTimestampIsMoreRecent`](Error::<T>::AssetTwapTimestampIsMoreRecent)
+        /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
         ///
         /// # Runtime
         /// `O(1)`
@@ -973,17 +972,15 @@ pub mod pallet {
         /// Updates [`VammMap`] storage map.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
-        /// * [`Error::<T>::InsufficientFundsForTrade`]
-        /// * [`Error::<T>::TradeExtrapolatesMaximumSupportedAmount`]
-        /// * [`Error::<T>::BaseAssetReservesWouldBeCompletelyDrained`]
-        /// * [`Error::<T>::QuoteAssetReservesWouldBeCompletelyDrained`]
-        /// * [`Error::<T>::SwappedAmountLessThanMinimumLimit`]
-        /// * [`Error::<T>::SwappedAmountMoreThanMaximumLimit`]
-        /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::Underflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::DivisionByZero`](sp_runtime::ArithmeticError)
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
+        /// * [`InsufficientFundsForTrade`](Error::<T>::InsufficientFundsForTrade)
+        /// * [`TradeExtrapolatesMaximumSupportedAmount`](Error::<T>::TradeExtrapolatesMaximumSupportedAmount)
+        /// * [`BaseAssetReservesWouldBeCompletelyDrained`](Error::<T>::BaseAssetReservesWouldBeCompletelyDrained)
+        /// * [`QuoteAssetReservesWouldBeCompletelyDrained`](Error::<T>::QuoteAssetReservesWouldBeCompletelyDrained)
+        /// * [`SwappedAmountLessThanMinimumLimit`](Error::<T>::SwappedAmountLessThanMinimumLimit)
+        /// * [`SwappedAmountMoreThanMaximumLimit`](Error::<T>::SwappedAmountMoreThanMaximumLimit)
+        /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
         ///
         /// # Runtime
         /// `O(1)`
@@ -1032,17 +1029,15 @@ pub mod pallet {
         /// This function does not mutate runtime storage.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
-        /// * [`Error::<T>::InsufficientFundsForTrade`]
-        /// * [`Error::<T>::BaseAssetReservesWouldBeCompletelyDrained`]
-        /// * [`Error::<T>::QuoteAssetReservesWouldBeCompletelyDrained`]
-        /// * [`Error::<T>::TradeExtrapolatesMaximumSupportedAmount`]
-        /// * [`Error::<T>::SwappedAmountLessThanMinimumLimit`]
-        /// * [`Error::<T>::SwappedAmountMoreThanMaximumLimit`]
-        /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::Underflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::DivisionByZero`](sp_runtime::ArithmeticError)
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
+        /// * [`InsufficientFundsForTrade`](Error::<T>::InsufficientFundsForTrade)
+        /// * [`BaseAssetReservesWouldBeCompletelyDrained`](Error::<T>::BaseAssetReservesWouldBeCompletelyDrained)
+        /// * [`QuoteAssetReservesWouldBeCompletelyDrained`](Error::<T>::QuoteAssetReservesWouldBeCompletelyDrained)
+        /// * [`TradeExtrapolatesMaximumSupportedAmount`](Error::<T>::TradeExtrapolatesMaximumSupportedAmount)
+        /// * [`SwappedAmountLessThanMinimumLimit`](Error::<T>::SwappedAmountLessThanMinimumLimit)
+        /// * [`SwappedAmountMoreThanMaximumLimit`](Error::<T>::SwappedAmountMoreThanMaximumLimit)
+        /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
         ///
         /// # Runtime
         /// `O(1)`
@@ -1102,11 +1097,12 @@ pub mod pallet {
         /// the invariant.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
-        /// * [`Error::<T>::BaseAssetReserveIsZero`]
-        /// * [`Error::<T>::QuoteAssetReserveIsZero`]
-        /// * [`Error::<T>::InvariantIsZero`]
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
+        /// * [`BaseAssetReserveIsZero`](Error::<T>::BaseAssetReserveIsZero)
+        /// * [`QuoteAssetReserveIsZero`](Error::<T>::QuoteAssetReserveIsZero)
+        /// * [`InvariantIsZero`](Error::<T>::InvariantIsZero)
+        /// * [`FailedToDeriveInvariantFromBaseAndQuoteAsset`](Error::<T>::FailedToDeriveInvariantFromBaseAndQuoteAsset)
         ///
         /// # Runtime
         /// `O(1)`
@@ -1247,10 +1243,10 @@ pub mod pallet {
         /// * [`VammMap`], modifying the [`closed`](VammState::closed) field.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
-        /// * [`Error::<T>::VammIsClosing`]
-        /// * [`Error::<T>::ClosingDateIsInThePast`]
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
+        /// * [`VammIsClosing`](Error::<T>::VammIsClosing)
+        /// * [`ClosingDateIsInThePast`](Error::<T>::ClosingDateIsInThePast)
         ///
         /// # Runtime
         /// `O(1)`
