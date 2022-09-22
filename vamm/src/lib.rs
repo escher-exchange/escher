@@ -1169,7 +1169,7 @@ pub mod pallet {
         /// No event is emitted for this function.
         ///
         /// ## State Changes
-        /// No runtime storage item is updated by function.
+        /// No runtime storage item is updated by this function.
         ///
         /// ## Errors
         /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
