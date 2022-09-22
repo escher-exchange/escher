@@ -679,7 +679,6 @@ pub mod pallet {
         /// * [`QuoteAssetReserveIsZero`](Error::<T>::QuoteAssetReserveIsZero)
         /// * [`InvariantIsZero`](Error::<T>::InvariantIsZero)
         /// * [`PegMultiplierIsZero`](Error::<T>::PegMultiplierIsZero)
-        /// * [`FailedToDeriveInvariantFromBaseAndQuoteAsset`](Error::<T>::FailedToDeriveInvariantFromBaseAndQuoteAsset)
         /// * [`FundingPeriodTooSmall`](Error::<T>::FundingPeriodTooSmall)
         /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
         ///
@@ -1104,7 +1103,6 @@ pub mod pallet {
         /// * [`BaseAssetReserveIsZero`](Error::<T>::BaseAssetReserveIsZero)
         /// * [`QuoteAssetReserveIsZero`](Error::<T>::QuoteAssetReserveIsZero)
         /// * [`InvariantIsZero`](Error::<T>::InvariantIsZero)
-        /// * [`FailedToDeriveInvariantFromBaseAndQuoteAsset`](Error::<T>::FailedToDeriveInvariantFromBaseAndQuoteAsset)
         ///
         /// # Runtime
         /// `O(1)`
