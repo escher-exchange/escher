@@ -722,7 +722,7 @@ pub mod pallet {
                     closed: None,
                 };
 
-                VammMap::<T>::insert(&id, vamm_state);
+                VammMap::<T>::insert(id, vamm_state);
                 *next_id = id
                     .checked_add(&One::one())
                     .ok_or(ArithmeticError::Overflow)?;
@@ -1126,7 +1126,7 @@ pub mod pallet {
             vamm_state.invariant = invariant;
 
             // Update runtime storage.
-            VammMap::<T>::insert(&config.vamm_id, vamm_state);
+            VammMap::<T>::insert(config.vamm_id, vamm_state);
 
             // Deposit price moved event into blockchain.
             Self::deposit_event(Event::<T>::PriceMoved {
@@ -1261,7 +1261,7 @@ pub mod pallet {
             Self::sanity_check_before_close(&vamm_state, &closing_time)?;
 
             // Update runtime storage.
-            VammMap::<T>::try_mutate(&vamm_id, |vamm| match vamm {
+            VammMap::<T>::try_mutate(vamm_id, |vamm| match vamm {
                 Some(v) => {
                     v.closed = Some(closing_time);
                     Ok(())

@@ -95,7 +95,7 @@ impl<T: Config> Pallet<T> {
                 };
 
                 // Update runtime storage.
-                VammMap::<T>::insert(&vamm_id, vamm_state);
+                VammMap::<T>::insert(vamm_id, vamm_state);
 
                 Ok(Some(current_twap))
             },
