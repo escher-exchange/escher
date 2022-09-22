@@ -177,7 +177,10 @@ pub mod pallet {
     use frame_support::{
         pallet_prelude::*, sp_std::fmt::Debug, traits::UnixTime, transactional, Blake2_128Concat,
     };
-    use helpers::{numbers::{FixedPointMath, TryReciprocal, UnsignedMath}, twap::Twap};
+    use helpers::{
+        numbers::{FixedPointMath, TryReciprocal, UnsignedMath},
+        twap::Twap,
+    };
     use num_integer::Integer;
     use sp_arithmetic::traits::Unsigned;
     use sp_core::U256;
