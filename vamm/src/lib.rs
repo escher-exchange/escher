@@ -772,7 +772,6 @@ pub mod pallet {
         ///
         /// ## Errors
         /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
-        /// * [`FailToRetrieveVamm`](Error::<T>::FailToRetrieveVamm)
         /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
         /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
         ///
