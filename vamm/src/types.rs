@@ -15,6 +15,12 @@ pub struct VammState<Balance, Moment, Twap> {
     /// The total amount of quote asset present in the vamm.
     pub quote_asset_reserves: Balance,
 
+    /// The amount of base asset when the vamm has no open positions against it.
+    pub terminal_base_asset_reserves: Balance,
+
+    /// The amount of quote asset when the vamm has no open positions against it.
+    pub terminal_quote_asset_reserves: Balance,
+
     /// The magnitude of the quote asset reserve.
     pub peg_multiplier: Balance,
 

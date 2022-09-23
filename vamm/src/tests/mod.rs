@@ -6,6 +6,7 @@ mod compute_invariant;
 mod constants;
 mod create_vamm;
 mod get_price;
+mod get_settlement_price;
 mod get_twap;
 mod helpers;
 mod helpers_propcompose;

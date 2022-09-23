@@ -177,7 +177,10 @@ pub mod pallet {
     use frame_support::{
         pallet_prelude::*, sp_std::fmt::Debug, traits::UnixTime, transactional, Blake2_128Concat,
     };
-    use helpers::{numbers::TryReciprocal, twap::Twap};
+    use helpers::{
+        numbers::{FixedPointMath, TryReciprocal, UnsignedMath},
+        twap::Twap,
+    };
     use num_integer::Integer;
     use sp_arithmetic::traits::Unsigned;
     use sp_core::U256;
@@ -486,6 +489,13 @@ pub mod pallet {
         /// * [`Pallet::close`]
         /// * [`Pallet::sanity_check_before_close`]
         VammIsClosing,
+        /// Tried to perform an operation against an open/closing Vamm, whereas it should be
+        /// closed.
+        ///
+        /// ## Occurrences
+        ///
+        /// * [`Pallet::get_settlement_price`]
+        VammIsNotClosed,
         /// Tried to swap assets but the amount returned was less than the minimum expected.
         ///
         /// ## Occurrences
@@ -665,12 +675,12 @@ pub mod pallet {
         /// Updates [`VammMap`] storage map and [`VammCounter`] storage value.
         ///
         /// ## Errors
-        /// * [`Error::<T>::BaseAssetReserveIsZero`]
-        /// * [`Error::<T>::QuoteAssetReserveIsZero`]
-        /// * [`Error::<T>::InvariantIsZero`]
-        /// * [`Error::<T>::PegMultiplierIsZero`]
-        /// * [`Error::<T>::FundingPeriodTooSmall`]
-        /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
+        /// * [`BaseAssetReserveIsZero`](Error::<T>::BaseAssetReserveIsZero)
+        /// * [`QuoteAssetReserveIsZero`](Error::<T>::QuoteAssetReserveIsZero)
+        /// * [`InvariantIsZero`](Error::<T>::InvariantIsZero)
+        /// * [`PegMultiplierIsZero`](Error::<T>::PegMultiplierIsZero)
+        /// * [`FundingPeriodTooSmall`](Error::<T>::FundingPeriodTooSmall)
+        /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
         ///
         /// # Runtime
         /// `O(1)`
@@ -705,12 +715,14 @@ pub mod pallet {
                         now,
                         config.twap_period,
                     ),
+                    terminal_base_asset_reserves: config.base_asset_reserves,
+                    terminal_quote_asset_reserves: config.quote_asset_reserves,
                     peg_multiplier: config.peg_multiplier,
                     invariant,
                     closed: None,
                 };
 
-                VammMap::<T>::insert(&id, vamm_state);
+                VammMap::<T>::insert(id, vamm_state);
                 *next_id = id
                     .checked_add(&One::one())
                     .ok_or(ArithmeticError::Overflow)?;
@@ -758,10 +770,9 @@ pub mod pallet {
         /// This function does not mutate runtime storage.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
-        /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::DivisionByZero`](sp_runtime::ArithmeticError)
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
+        /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
         ///
         /// # Runtime
         /// `O(1)`
@@ -814,8 +825,8 @@ pub mod pallet {
         /// This function does not mutate runtime storage.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
         ///
         /// # Runtime
         /// `O(1)`
@@ -895,13 +906,11 @@ pub mod pallet {
         /// Updates [`VammMap`] storage map.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
-        /// * [`Error::<T>::NewTwapValueIsZero`]
-        /// * [`Error::<T>::AssetTwapTimestampIsMoreRecent`]
-        /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::Underflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::DivisionByZero`](sp_runtime::ArithmeticError)
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
+        /// * [`NewTwapValueIsZero`](Error::<T>::NewTwapValueIsZero)
+        /// * [`AssetTwapTimestampIsMoreRecent`](Error::<T>::AssetTwapTimestampIsMoreRecent)
+        /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
         ///
         /// # Runtime
         /// `O(1)`
@@ -964,17 +973,15 @@ pub mod pallet {
         /// Updates [`VammMap`] storage map.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
-        /// * [`Error::<T>::InsufficientFundsForTrade`]
-        /// * [`Error::<T>::TradeExtrapolatesMaximumSupportedAmount`]
-        /// * [`Error::<T>::BaseAssetReservesWouldBeCompletelyDrained`]
-        /// * [`Error::<T>::QuoteAssetReservesWouldBeCompletelyDrained`]
-        /// * [`Error::<T>::SwappedAmountLessThanMinimumLimit`]
-        /// * [`Error::<T>::SwappedAmountMoreThanMaximumLimit`]
-        /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::Underflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::DivisionByZero`](sp_runtime::ArithmeticError)
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
+        /// * [`InsufficientFundsForTrade`](Error::<T>::InsufficientFundsForTrade)
+        /// * [`TradeExtrapolatesMaximumSupportedAmount`](Error::<T>::TradeExtrapolatesMaximumSupportedAmount)
+        /// * [`BaseAssetReservesWouldBeCompletelyDrained`](Error::<T>::BaseAssetReservesWouldBeCompletelyDrained)
+        /// * [`QuoteAssetReservesWouldBeCompletelyDrained`](Error::<T>::QuoteAssetReservesWouldBeCompletelyDrained)
+        /// * [`SwappedAmountLessThanMinimumLimit`](Error::<T>::SwappedAmountLessThanMinimumLimit)
+        /// * [`SwappedAmountMoreThanMaximumLimit`](Error::<T>::SwappedAmountMoreThanMaximumLimit)
+        /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
         ///
         /// # Runtime
         /// `O(1)`
@@ -1023,17 +1030,15 @@ pub mod pallet {
         /// This function does not mutate runtime storage.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
-        /// * [`Error::<T>::InsufficientFundsForTrade`]
-        /// * [`Error::<T>::BaseAssetReservesWouldBeCompletelyDrained`]
-        /// * [`Error::<T>::QuoteAssetReservesWouldBeCompletelyDrained`]
-        /// * [`Error::<T>::TradeExtrapolatesMaximumSupportedAmount`]
-        /// * [`Error::<T>::SwappedAmountLessThanMinimumLimit`]
-        /// * [`Error::<T>::SwappedAmountMoreThanMaximumLimit`]
-        /// * [`ArithmeticError::Overflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::Underflow`](sp_runtime::ArithmeticError)
-        /// * [`ArithmeticError::DivisionByZero`](sp_runtime::ArithmeticError)
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
+        /// * [`InsufficientFundsForTrade`](Error::<T>::InsufficientFundsForTrade)
+        /// * [`BaseAssetReservesWouldBeCompletelyDrained`](Error::<T>::BaseAssetReservesWouldBeCompletelyDrained)
+        /// * [`QuoteAssetReservesWouldBeCompletelyDrained`](Error::<T>::QuoteAssetReservesWouldBeCompletelyDrained)
+        /// * [`TradeExtrapolatesMaximumSupportedAmount`](Error::<T>::TradeExtrapolatesMaximumSupportedAmount)
+        /// * [`SwappedAmountLessThanMinimumLimit`](Error::<T>::SwappedAmountLessThanMinimumLimit)
+        /// * [`SwappedAmountMoreThanMaximumLimit`](Error::<T>::SwappedAmountMoreThanMaximumLimit)
+        /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
         ///
         /// # Runtime
         /// `O(1)`
@@ -1093,11 +1098,11 @@ pub mod pallet {
         /// the invariant.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
-        /// * [`Error::<T>::BaseAssetReserveIsZero`]
-        /// * [`Error::<T>::QuoteAssetReserveIsZero`]
-        /// * [`Error::<T>::InvariantIsZero`]
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
+        /// * [`BaseAssetReserveIsZero`](Error::<T>::BaseAssetReserveIsZero)
+        /// * [`QuoteAssetReserveIsZero`](Error::<T>::QuoteAssetReserveIsZero)
+        /// * [`InvariantIsZero`](Error::<T>::InvariantIsZero)
         ///
         /// # Runtime
         /// `O(1)`
@@ -1121,7 +1126,7 @@ pub mod pallet {
             vamm_state.invariant = invariant;
 
             // Update runtime storage.
-            VammMap::<T>::insert(&config.vamm_id, vamm_state);
+            VammMap::<T>::insert(config.vamm_id, vamm_state);
 
             // Deposit price moved event into blockchain.
             Self::deposit_event(Event::<T>::PriceMoved {
@@ -1135,8 +1140,71 @@ pub mod pallet {
             Ok(invariant)
         }
 
-        fn get_settlement_price(_vamm_id: Self::VammId) -> Result<Self::Decimal, DispatchError> {
-            todo!()
+        /// Computes the price to settle positions against after a vAMM has been closed.
+        ///
+        /// # Overview
+        /// After trading against a vAMM is halted, users can only close their positions at a
+        /// pre-computed settlement price. This function computes that settlement price after a vAMM
+        /// is closed. It takes into account the net position of all traders left after vAMM
+        /// closure. The settlement price is higher the more distant the reserves are from
+        /// their terminal values. This price is the average execution price if a single
+        /// trade took the vAMM from its terminal reserves to their current values. Traders
+        /// who have a higher average execution price lose money and those who have a lower
+        /// one, win. The settlement price is 0 if the vAMM ended up closing at terminal
+        /// reserve values.
+        ///
+        /// ![](https://www.plantuml.com/plantuml/svg/BSqn3i8m34RXdLF00QXtfjwaCkvF4Ybs8yS6ZWz2J4zl-jOPx97QJvTcqdD7UZ_NY35lHCwlfRIeUSy9byC25eiSIfXIuLUyfR8L_9-Kcz6JLMblN9nrqYDDeXss5SGs4T6XiDY6Dy4oEjkFNs7xjny0)
+        ///
+        /// ## Parameters:
+        /// * `vamm_id`: identifier for the closed vAMM
+        ///
+        /// ## Returns
+        /// The settlement price as an unsigned decimal.
+        ///
+        /// ## Assumptions or Requirements
+        /// * The vAMM with id `vamm_id` must exist
+        /// * The vAMM with id `vamm_id` must be closed
+        ///
+        /// ## Emits
+        /// No event is emitted for this function.
+        ///
+        /// ## State Changes
+        /// No runtime storage item is updated by this function.
+        ///
+        /// ## Errors
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsNotClosed`](Error::<T>::VammIsNotClosed)
+        /// * [`ArithmeticError`](sp_runtime::ArithmeticError)
+        ///
+        /// # Runtime
+        /// `O(1)`
+        fn get_settlement_price(vamm_id: Self::VammId) -> Result<Self::Decimal, DispatchError> {
+            let vamm_state = Self::get_vamm_state(&vamm_id)?;
+            ensure!(
+                Self::is_vamm_closed(&vamm_state, &None),
+                Error::<T>::VammIsNotClosed
+            );
+
+            let abs_base_diff = Self::abs_balance_diff(
+                vamm_state.base_asset_reserves,
+                vamm_state.terminal_base_asset_reserves,
+            );
+            let abs_quote_diff = Self::abs_balance_diff(
+                vamm_state
+                    .peg_multiplier
+                    .try_mul(&vamm_state.quote_asset_reserves)?,
+                vamm_state
+                    .peg_multiplier
+                    .try_mul(&vamm_state.terminal_quote_asset_reserves)?,
+            );
+
+            if abs_base_diff.is_zero() {
+                return Ok(Zero::zero())
+            }
+
+            let net_base_decimal = T::Decimal::from_inner(abs_base_diff);
+            let net_quote_decimal = T::Decimal::from_inner(abs_quote_diff);
+            Ok(net_quote_decimal.try_div(&net_base_decimal)?)
         }
 
         /// Schedules a closing date for the desired vamm, after which the vamm
@@ -1177,10 +1245,10 @@ pub mod pallet {
         /// * [`VammMap`], modifying the [`closed`](VammState::closed) field.
         ///
         /// ## Errors
-        /// * [`Error::<T>::VammDoesNotExist`]
-        /// * [`Error::<T>::VammIsClosed`]
-        /// * [`Error::<T>::VammIsClosing`]
-        /// * [`Error::<T>::ClosingDateIsInThePast`]
+        /// * [`VammDoesNotExist`](Error::<T>::VammDoesNotExist)
+        /// * [`VammIsClosed`](Error::<T>::VammIsClosed)
+        /// * [`VammIsClosing`](Error::<T>::VammIsClosing)
+        /// * [`ClosingDateIsInThePast`](Error::<T>::ClosingDateIsInThePast)
         ///
         /// # Runtime
         /// `O(1)`
@@ -1193,7 +1261,7 @@ pub mod pallet {
             Self::sanity_check_before_close(&vamm_state, &closing_time)?;
 
             // Update runtime storage.
-            VammMap::<T>::try_mutate(&vamm_id, |vamm| match vamm {
+            VammMap::<T>::try_mutate(vamm_id, |vamm| match vamm {
                 Some(v) => {
                     v.closed = Some(closing_time);
                     Ok(())

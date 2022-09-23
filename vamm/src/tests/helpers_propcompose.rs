@@ -185,6 +185,8 @@ prop_compose! {
         VammState {
             base_asset_reserves,
             quote_asset_reserves,
+            terminal_base_asset_reserves: base_asset_reserves,
+            terminal_quote_asset_reserves: quote_asset_reserves,
             peg_multiplier,
             invariant: TestPallet::compute_invariant(
                 base_asset_reserves, quote_asset_reserves

@@ -1,4 +1,5 @@
 use crate::{Config, Error, Pallet};
+use core::cmp::Ordering;
 use frame_support::pallet_prelude::*;
 use helpers::numbers::IntoU256;
 use sp_core::U256;
@@ -82,5 +83,14 @@ impl<T: Config> Pallet<T> {
         let twap_u128: u128 = twap_u256.try_into()?;
 
         Ok(T::Decimal::from_inner(twap_u128.into()))
+    }
+
+    /// Returns the absolute difference between balances `a` and `b`.
+    pub fn abs_balance_diff(a: T::Balance, b: T::Balance) -> T::Balance {
+        match a.cmp(&b) {
+            Ordering::Less => b - a,
+            Ordering::Greater => a - b,
+            Ordering::Equal => Zero::zero(),
+        }
     }
 }

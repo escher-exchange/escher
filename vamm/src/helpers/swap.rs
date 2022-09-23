@@ -54,7 +54,7 @@ impl<T: Config> Pallet<T> {
         } = Self::compute_swap(config, vamm_state)?;
 
         // Update runtime storage.
-        VammMap::<T>::try_mutate(&config.vamm_id, |old_vamm_state| match old_vamm_state {
+        VammMap::<T>::try_mutate(config.vamm_id, |old_vamm_state| match old_vamm_state {
             Some(v) => {
                 v.base_asset_reserves = base_asset_reserves;
                 v.quote_asset_reserves = quote_asset_reserves;
