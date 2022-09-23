@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 1bb95a80acb9f0723779f649c8615cd4a662e85842bd1ef79e435d1c25d1228e # shrinks to market_prices = [(1000, 1)]

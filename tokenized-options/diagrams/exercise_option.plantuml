@@ -1,0 +1,22 @@
+@startuml
+actor Buyer #blue
+participant "Option Pallet" as Protocol #green
+database Options
+database Vaults
+entity ProtocolAccount #yellow
+
+
+group #FFFF0033 Exercise Window [From Day 8 (exp. date) to Day ?]
+group #FFFF0055 Exercise Option 
+Buyer -> Protocol: Exercise option (passing option_id)
+activate Protocol
+Protocol -> Options: get option
+Protocol --> Protocol: check if exercise amount for the specified option
+Protocol --> Protocol: calculate amount to pay to Buyer
+Buyer <- ProtocolAccount: transfer funds to buyer
+Protocol -> Buyer: burn option token from user's account
+Buyer o<- Protocol: emit event
+deactivate Protocol
+end
+end
+@enduml

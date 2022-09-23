@@ -1,0 +1,29 @@
+@startuml
+actor Seller #red
+participant "Option Pallet" as Protocol #green
+database Options
+database Vaults
+database Sellers
+entity ProtocolAccount #yellow
+participant "Vault Pallet" as Vault #green
+
+
+group #FF000055 Sell Option
+Seller -> Protocol: Sell option (passing option_id)
+activate Protocol
+Protocol -> Options: get option
+Protocol --> Protocol: check if deposit window
+Protocol --> Protocol: check if Seller owns collateral
+Protocol -> Vaults: get vault
+Protocol -> Vault: calculate amount of shares to mint
+Protocol -> ProtocolAccount: transfer Seller funds 
+ProtocolAccount -> Vault: deposit funds
+activate Vault
+ProtocolAccount <-- Vault: receive shares
+deactivate Vault
+Protocol -> Sellers: create or update position
+Protocol -> Options: increase total option amount for sale
+Seller o<- Protocol: emit event
+deactivate Protocol
+end
+@enduml

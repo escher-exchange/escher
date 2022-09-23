@@ -1,0 +1,169 @@
+@startuml
+actor Buyer #blue
+actor Seller #red
+participant "Option Pallet" as Protocol #green
+database Options
+database Vaults
+database Sellers
+database Scheduler
+entity ProtocolAccount #yellow
+participant "Vault Pallet" as Vault #green
+participant Oracle #green
+participant "Pricing Pallet" as Pricing #green
+
+
+
+
+
+
+group Epoch [Day 0]
+
+group #00000022 Create Vault
+ProtocolAccount -> Protocol: Create Vault (passing vault config)
+activate Protocol
+Protocol --> Protocol: check if vault does not already exist
+Protocol --> Oracle: check if asset is supported
+Protocol -> Vaults: save new vault
+ProtocolAccount o<- Protocol: emit event
+deactivate Protocol
+end
+
+group #00000022 Create Option
+ProtocolAccount -> Protocol: Create Option (passing option config)
+activate Protocol
+Protocol --> Protocol: check if option does not already exist
+Protocol --> Protocol: check if option asset_vaults exist
+Protocol --> Protocol: check if option attributes are valid
+Protocol -> Protocol: generate new option id
+Protocol -> Options: save new option
+Protocol -> Scheduler: save epoch for new option
+ProtocolAccount o<- Protocol: emit event
+deactivate Protocol
+end
+==  ==
+
+
+group #FF000033 Deposit Window [From Day 0 to Day 5]
+group #FF000055 Sell Option
+Seller -> Protocol: Sell option (passing option_id)
+activate Protocol
+Protocol -> Options: get option
+Protocol --> Protocol: check if deposit window
+Protocol --> Protocol: check if Seller owns collateral
+Protocol -> Vaults: get vault
+Protocol -> Vault: calculate amount of shares to mint
+Protocol -> ProtocolAccount: transfer Seller funds 
+ProtocolAccount -> Vault: deposit funds
+activate Vault
+ProtocolAccount <-- Vault: receive shares
+deactivate Vault
+Protocol -> Sellers: create or update position
+Protocol -> Options: increase total option amount for sale
+Seller o<- Protocol: emit event
+deactivate Protocol
+end
+
+group #FF000055 Delete Sell Option
+Seller -> Protocol: Delete sell option (passing option_id)
+activate Protocol
+Protocol -> Options: get option
+Protocol --> Protocol: check if deposit window
+Protocol --> Protocol: check if Seller has position
+Protocol -> Sellers: get position
+Protocol -> Vaults: get vault
+Protocol -> Vault: calculate amount of shares to burn
+Protocol -> Vault: withdraw funds
+activate Vault
+ProtocolAccount <-- Vault: receive funds
+deactivate Vault
+Seller <- ProtocolAccount: transfer funds
+Protocol -> Sellers: delete or update position
+Protocol -> Options: decrease total option amount for sale
+Seller o<- Protocol: emit event
+deactivate Protocol
+end
+end
+
+==  ==
+
+
+group #0000FF33 Purchase Window [From Day 5 to Day 7]
+Buyer -> Protocol: Buy option (passing option_id)
+activate Protocol
+Protocol -> Options: get option
+Protocol -> Pricing: calculate premium to pay
+activate Pricing
+Protocol <-- Pricing: premium_price
+deactivate Pricing
+Protocol -> Options: check option available for sale
+Protocol --> Protocol: check if Buyer owns enough funds to pay premium
+Protocol -> ProtocolAccount: transfer premium
+Buyer <- Protocol: mint option token
+Buyer o<- Protocol: emit event
+deactivate Protocol
+end
+
+==  ==
+
+group #00000022 RFQ Window [From Day 7 to Day 8 (exp. date)] TODO
+Protocol -> Protocol: block all actions
+Protocol --> Protocol: evaluate if RFQ is needed
+note left
+TBD how to do it
+end note
+end
+
+==  ==
+
+group #00000022 Settlement Window [Day 8 (exp. date)]
+Protocol -> Oracle: get asset spot price at expiration time
+activate Oracle
+Protocol <-- Oracle: asset_price
+deactivate Oracle
+Protocol -> Options: save asset spot price at expiration time
+Protocol -> Options: calculate and save exercise amount for buyers
+Protocol -> Options: save info to calculate remaining collateral for sellers 
+Protocol -> Options: save info to calculate premium for sellers
+Protocol -> Vaults: get vault
+Protocol -> Vault: withdraw funds to pay all buyers (if option is in-the-money)
+activate Vault
+ProtocolAccount <-- Vault: receive funds
+deactivate Vault
+end
+==  ==
+
+group #FFFF0033 Exercise Window [From Day 8 (exp. date) to Day ?]
+group #FFFF0055 Exercise Option 
+Buyer -> Protocol: Exercise option (passing option_id)
+activate Protocol
+Protocol -> Options: get option
+Protocol --> Protocol: check if exercise amount for the specified option
+Protocol --> Protocol: calculate amount to pay to Buyer
+Buyer <- ProtocolAccount: transfer funds to buyer
+Protocol -> Buyer: burn option token from user's account
+Buyer o<- Protocol: emit event
+deactivate Protocol
+end
+==  ==
+
+group #FFFF0055 Withdraw Collateral 
+Seller -> Protocol: Withdraw collateral (passing option_id)
+activate Protocol
+Protocol -> Options: get option
+Protocol --> Sellers: check if Seller has position
+Protocol -> Vaults: get vault
+Protocol --> Protocol: calculate shares to give to Seller
+Protocol --> Protocol: calculate premium to give to Seller
+Protocol -> Vault: withdraw collateral from vault (yield included)
+activate Vault
+ProtocolAccount <-- Vault: receive funds
+deactivate Vault
+Seller <- ProtocolAccount: transfer collateral
+Seller <- ProtocolAccount: transfer premium
+Protocol -> Sellers: delete position
+Seller o<- Protocol: emit event
+deactivate Protocol
+end
+end
+end
+@enduml

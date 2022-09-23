@@ -13,4 +13,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod clearing_house;
+pub mod options_pricing;
+pub mod tokenized_options;
+pub mod swap_bytes;
 pub mod vamm;

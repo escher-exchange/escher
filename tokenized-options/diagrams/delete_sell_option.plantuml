@@ -1,0 +1,30 @@
+@startuml
+actor Seller #red
+participant "Option Pallet" as Protocol #green
+database Options
+database Vaults
+database Sellers
+entity ProtocolAccount #yellow
+participant "Vault Pallet" as Vault #green
+
+
+group #FF000055 Delete Sell Option
+Seller -> Protocol: Delete sell option (passing option_id)
+activate Protocol
+Protocol -> Options: get option
+Protocol --> Protocol: check if deposit window
+Protocol --> Protocol: check if Seller has position
+Protocol -> Sellers: get position
+Protocol -> Vaults: get vault
+Protocol -> Vault: calculate amount of shares to burn
+Protocol -> Vault: withdraw funds
+activate Vault
+ProtocolAccount <-- Vault: receive funds
+deactivate Vault
+Seller <- ProtocolAccount: transfer funds
+Protocol -> Sellers: delete or update position
+Protocol -> Options: decrease total option amount for sale
+Seller o<- Protocol: emit event
+deactivate Protocol
+end
+@enduml

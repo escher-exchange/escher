@@ -1,0 +1,16 @@
+@startuml
+entity ProtocolAccount #yellow
+participant "Option Pallet" as Protocol #green
+database Vaults
+participant "Oracle Pallet" as Oracle #green
+
+group #00000022 Create Vault
+ProtocolAccount -> Protocol: Create Vault (passing vault config)
+activate Protocol
+Protocol --> Protocol: check if vault does not already exist
+Protocol --> Oracle: check if asset is supported
+Protocol -> Vaults: save new vault
+ProtocolAccount o<- Protocol: emit event
+deactivate Protocol
+end
+@enduml

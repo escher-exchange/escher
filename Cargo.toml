@@ -2,6 +2,8 @@
 members = [
     "clearing-house",
     "helpers",
+    "options-pricing",
+    "tokenized-options",
     "traits",
     "vamm",
 ]
