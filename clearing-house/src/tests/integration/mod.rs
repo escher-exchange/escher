@@ -25,6 +25,7 @@ mod close_market;
 mod create_market;
 mod liquidate;
 mod open_position;
+mod settle_position;
 mod update_funding;
 
 // -------------------------------------------------------------------------------------------------
