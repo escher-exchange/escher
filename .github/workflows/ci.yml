@@ -60,7 +60,7 @@ jobs:
       CARGO_TERM_COLOR: always
       NEXTEST_FAILURE_OUTPUT: final
       NEXTEST_SUCCESS_OUTPUT: never
-      NEXTEST_STATUS_LEVEL: fail
+      NEXTEST_STATUS_LEVEL: all
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
