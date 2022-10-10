@@ -455,7 +455,7 @@ pub mod pallet {
         /// * [`Pallet::compute_swap`]
         /// * [`Pallet::sanity_check_before_swap`]
         InsufficientFundsForTrade,
-        /// Tried to add some amount of asset to Vamm but it would exceeds the
+        /// Tried to add some amount of asset to Vamm but it would exceed the
         /// supported maximum value.
         ///
         /// ## Occurrences
