@@ -1567,7 +1567,6 @@ pub mod pallet {
                 positions.swap_remove(position_index);
 
                 Collateral::<T>::insert(&account_id, collateral);
-                Markets::<T>::insert(&market_id, market);
                 Positions::<T>::insert(&account_id, positions);
             }
             Ok(())
