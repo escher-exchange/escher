@@ -16,7 +16,7 @@
 //! Below is a diagram showing how the trait and runtime storage looks like and
 //! interact with each other:
 //!
-//! ![](https://www.plantuml.com/plantuml/svg/ZLJDZjCm4BxdAKnFYzJk0qGXscMvS408kk8Q3SbiQX7_u9cqGgWyEx4JR6zJfFgGsZFV_7_J1s9mFAgXUCC7L2WKE2eA2-qFw55iB0m3yku8Ict4xq9CHsf6zm8jYc-JL5GLEv1Srrwzd3-YTGYCTwtHBx8l0_8ftD_ceC4GtddVC-9ZjnMd0-fIF4k5nA1i3k-H6-jaEviqiajMG8HSYaV_y_pBugKPdy2-2fG3Q5B6JFVJOvsfCaVCOgV0tu6m2T4RK6RKN8htC81kSIj-ZeR_erpvPdFLFOEBLLyOdyEt0mQVWzY4OUpPEEXnayr2WGtkQ9hKelu4DX-NFqj4yQwEqdEyjGCG1SIUWN5oHEp6bbTEbWJphZWaT4UagpZVePk05lj6ZGDBEqXqho2VBKkZgyYOUgPLbzSHlkT8wwLPJoEnKSBpXNp7Kgc9hgjQRwZpXXflgEzSf8GIAzS9vTDRzYAAupxC2x8AAxKT5sucvGVfiFKz5Ts_syhGZ9micq4goNdIg4UL1QygBxZe865yVF4jMjcdF2xi7xjk6ovVqUzE6cyHnhhhp4dlweNqfJWvoLZCh_jx9_i3rncPIxyXL3oWxlpVu5y0)
+//! ![](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/vamm/diagrams/pallet-vamm.plantuml)
 //!
 //! ### Terminology
 //!
@@ -455,7 +455,7 @@ pub mod pallet {
         /// * [`Pallet::compute_swap`]
         /// * [`Pallet::sanity_check_before_swap`]
         InsufficientFundsForTrade,
-        /// Tried to add some amount of asset to Vamm but it would exceeds the
+        /// Tried to add some amount of asset to Vamm but it would exceed the
         /// supported maximum value.
         ///
         /// ## Occurrences
@@ -646,7 +646,7 @@ pub mod pallet {
         /// [`Created`](Event::<T>::Created) event on the blockchain and returns
         /// the new [`VammId`](Config::VammId) to the caller.
         ///
-        /// ![](https://www.plantuml.com/plantuml/svg/NP2nJiCm48PtFyNH1L2L5yXGbROB0on8x5VdLsibjiFT9NbzQaE4odRIz-dp-VPgB3R5mMaVqiZ2aGGwvgHuWofVSC2GbnUHl93916V11j0dnqXUm1PoSeyyMMPlOMO3vUGUx8e8YYpgtCXYmOUHaz7cE0Gasn0h-JhUuzAjSBuDhcFZCojeys5P-09wAi9pDVIVSXYox_sLGwhux9txUO6QNSrjjoqToyfriHv6Wgy9QgxGOjNalRJ2PfTloPPE6BC68r-TRYrXHlfJVx_MD2szOrcTrvFR8tNbsjy0)
+        /// ![](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/vamm/diagrams/function_create.plantuml)
         ///
         /// ## Parameters:
         /// - `base_asset_reserves`: The amount of
@@ -746,7 +746,7 @@ pub mod pallet {
         /// Vamm Pallet consults the runtime storage for the desired vamm,
         /// computes the current price and returns it to the caller.
         ///
-        /// ![](https://www.plantuml.com/plantuml/svg/PP0zJWCn44PxdsBO1b2q5qY14b9GKI7H3vkFOB7-OURRvFfWhm0XEillpHlBEwSQbpG7Vu-vgcaIWzUI7OzmrnFkCPVBtgnSXBOWC7A6F82Yxg1KYnFajPYeF6jAuLeN5fqOpqf8oU6ARqYGfEOXL3N6ALRDbE4mHsGEeYvJF_x5BTVXkNMFIdrHXmnFBAOdo4qJRhlXNGbhHSQxFhBPRFyzrF2nm1aQRruVNBL-vLJYXwxmK59TY5xuPbzmNJQEMzd_BWWxv6Fxq4y0)
+        /// ![](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/vamm/diagrams/function_get_price.plantuml)
         ///
         /// ## Parameters
         ///  - `vamm_id`: The ID of the desired vamm to query.
@@ -801,7 +801,7 @@ pub mod pallet {
         /// The pallet will query the runtime storage and return the desired
         /// twap.
         ///
-        /// ![](https://www.plantuml.com/plantuml/svg/FSqz3i8m343XdLF01UgTgH8IrwXSrsqYnKxa7tfzAWQcfszwimTQfBJReogrt3YjtKl4y2U0uJaTDKgkwMpKDLXZeYxmwZAwuzhuNO7-07OgRB0R2iC7HM2hU5nos5CfQjVbu5ZYn36DXlfxpwpRrIy0)
+        /// ![](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/vamm/diagrams/function_get_twap.plantuml)
         ///
         /// ## Parameters
         ///  - [`vamm_id`](Config::VammId): The ID of the desired vamm to query.
@@ -879,7 +879,7 @@ pub mod pallet {
         /// * $T_{now}$: current unix timestamp (ie. seconds since the Unix epoch).
         /// * $T_{last\\_update}$: timestamp from last twap update.
         ///
-        /// ![](https://www.plantuml.com/plantuml/svg/FSqz3i8m343XdLF01UgTgH8IrwXSnsqZnKxa7tfzAWQcfszwimTQfBJReogrB9pMxaV4y2U0uJdjDOvSqzceQx36H5tWrMLqnxNnkmBz0UnqiC5cA0mV585ISR_aiALIrAvBZeB1Ivmufj5GV_kPjLpz0W00)
+        /// ![](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/vamm/diagrams/function_update_twap.plantuml)
         ///
         /// ## Parameters
         ///  - [`vamm_id`](Config::VammId): The ID of the desired vamm to update.
@@ -946,7 +946,7 @@ pub mod pallet {
         /// In the current state the only function available to perform these
         /// computations is the CFMM `x * y = k`.
         ///
-        /// ![](https://www.plantuml.com/plantuml/svg/FSq_giCm383n_PtYzGBHtYbGw3MA8YknmPAD_ZJNR-ZGwUCtVQi7MgJqlrjJwbauhV_NYEbt0CDpELhKtDBPQ6Ymna93u35a3iUjyxC1_G3iLDbWDnI6Duf0QNXSSjXJAThGbvyubzbHlz-LjLpz0000)
+        /// ![](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/vamm/diagrams/function_swap.plantuml)
         ///
         /// ## Parameters
         ///  - `config`: Specification for swaps.
@@ -1008,7 +1008,7 @@ pub mod pallet {
         /// This function essentially does the same as [`swap`](Self::swap),
         /// except for the fact that the runtime storage is not mutated.
         ///
-        /// ![](http://www.plantuml.com/plantuml/svg/FSuzZi90343XVa-nN23kgI8XSOt8cJYPaMpFo3_a-WGAggUlUxC7MgJmtwrfuTmeZVzhnF0xWE4v7IrghkbafMkGnbIwmAFBw8uhqxD1-G78IoM3tL08NYW2MyFZaiEUMg9rNVp4iNYJPFnu6epwNPX9jwjl)
+        /// ![](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/vamm/diagrams/function_swap_simulation.plantuml)
         ///
         /// ## Parameters
         ///  - `config`: Specification for swaps.
@@ -1069,7 +1069,7 @@ pub mod pallet {
         /// the blockchain warning the state change for the vamm and the asset
         /// reserves of the vamm and it's invariant will change accordingly.
         ///
-        /// ![](https://www.plantuml.com/plantuml/svg/FSqz3i8m343XdLF01UgTgH8IrwXSrsqYnKxadt9zAWQcfszwimTQfBJReogrt3YjtKl4y2U0uMSwQfHSqzceQx36H5tWrMLqnxNnkmBz0UnKs60t58OJHM2hU5nos5CfQjT5-idBi4eyZORwky-iszKl)
+        /// ![](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/vamm/diagrams/function_move_price.plantuml)
         ///
         /// ## Parameters:
         /// * [`config`](traits::vamm::MovePriceConfig):
@@ -1153,7 +1153,7 @@ pub mod pallet {
         /// one, win. The settlement price is 0 if the vAMM ended up closing at terminal
         /// reserve values.
         ///
-        /// ![](https://www.plantuml.com/plantuml/svg/BSqn3i8m34RXdLF00QXtfjwaCkvF4Ybs8yS6ZWz2J4zl-jOPx97QJvTcqdD7UZ_NY35lHCwlfRIeUSy9byC25eiSIfXIuLUyfR8L_9-Kcz6JLMblN9nrqYDDeXss5SGs4T6XiDY6Dy4oEjkFNs7xjny0)
+        /// ![](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/vamm/diagrams/function_get_settlement_price.plantuml)
         ///
         /// ## Parameters:
         /// * `vamm_id`: identifier for the closed vAMM
@@ -1217,7 +1217,7 @@ pub mod pallet {
         /// the specified vamm. The vamm will be considered closed when the
         /// current time reaches the specified time in this function call.
         ///
-        /// ![](https://www.plantuml.com/plantuml/svg/BSsz3G8n343XdYbW0EAUwZP1nZ59fDWv-GSO7uIkUdhLjtcWHSeyNORIpCffyzmZThy16BvB6z7paSv6IuCr2Yq1TkfiL_vGHsryF0WEXHUAG1tO3CNXcKenbjvfBkUoJzI_jx7MNxy0)
+        /// ![](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/vamm/diagrams/function_close.plantuml)
         ///
         /// ## Parameters:
         /// * [`vamm_id`](Config::VammId): The ID of the desired vamm to close.
