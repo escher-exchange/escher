@@ -1,0 +1,18 @@
+@startuml close_market
+!theme mars
+
+actor "Authority" as g
+participant "Clearing\nHouse" as ch
+database "Markets" as markets
+participant "vAMM" as vamm
+
+g -> ch : ""close_market""
+
+ch -[#green]> markets : get ""Market""
+
+ch -> vamm : ""close""
+
+ch -[#red]> markets : set ""closed_ts""
+
+?<-o ch : emit event
+@enduml

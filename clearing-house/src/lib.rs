@@ -977,7 +977,7 @@ pub mod pallet {
         /// Users can settle their positions after the market close by calling
         /// [`settle_position`](Self::settle_position).
         ///
-        /// TODO(0xangelo): add sequence diagram
+        /// ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/clearing-house/diagrams/close-market.plantuml)
         ///
         /// ## Parameters
         ///
