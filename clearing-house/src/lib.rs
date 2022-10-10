@@ -620,7 +620,7 @@ pub mod pallet {
         /// alludes to the amount of collateral that can be withdrawn without making the account go
         /// below the initial margin ratio.
         ///
-        /// ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/clearing-house/diagrams/remove-margin.plantuml)
+        /// ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/clearing-house/diagrams/withdraw-collateral.plantuml)
         ///
         /// ## Parameters
         /// - `amount`: The balance of collateral asset to be transferred from the Clearing House to
