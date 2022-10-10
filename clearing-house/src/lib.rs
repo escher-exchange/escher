@@ -1024,6 +1024,8 @@ pub mod pallet {
         /// position in it. This function calculates a settlement price based on the vAMM and
         /// settles the user's position against it.
         ///
+        /// ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/clearing-house/diagrams/settle-position.plantuml)
+        ///
         /// # Parameters
         ///
         /// - `market_id`: the market to be settled

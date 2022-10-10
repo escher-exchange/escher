@@ -1,0 +1,25 @@
+@startuml settle_position
+!theme mars
+
+participant "Trader" as user
+participant "Clearing\nHouse" as ch
+database "Markets" as markets
+database "Collateral" as CHS
+database "Positions" as positions
+participant "vAMM" as vamm
+
+user -> ch : ""settle_position""
+
+ch -[#green]> markets : get market
+ch -[#green]> CHS : get collateral
+ch -[#green]> positions : get position
+
+ch -> ch : settle funding
+
+ch -> vamm : ""get_settlement_price""
+
+ch -[#red]> CHS : update collateral
+ch -[#red]> positions : delete position
+
+?<-o ch : emit event
+@enduml
