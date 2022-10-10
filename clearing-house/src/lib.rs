@@ -580,7 +580,7 @@ pub mod pallet {
         /// and can be liquidated if its margin ratio falls bellow maintenance. Deposited collateral
         /// backs all the positions of an account across multiple markets (cross-margining).
         ///
-        /// ![](http://www.plantuml.com/plantuml/svg/FSrD2W8n343XlQVG0ynaxsf0y1wPDhQ592tvmUihBbmztkexFD0YXI-teOMpKXfVUyJoEu3XUsyZUfxfP6LgaCPUfi1ZofgE9zDpGFaFa9TE1Yz38IXCQ4FRrcSwGHtO3CK1Qzq4hGtT5wF--8EqVli1)
+        /// ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/clearing-house/diagrams/deposit-collateral.plantuml)
         ///
         /// ## Parameters
         /// - `asset_id`: The identifier of the asset type being deposited
@@ -620,7 +620,7 @@ pub mod pallet {
         /// alludes to the amount of collateral that can be withdrawn without making the account go
         /// below the initial margin ratio.
         ///
-        /// ![](https://www.plantuml.com/plantuml/svg/FOux3i8m40LxJW47IBQdYeJ4FJREmxPahwtzmFM9AAX6CzLivgmUlLrkLLAB0w7jMjodtOcKFskkNc8FWwOX3l4rZKwFqUSmtXkUbT9V29OAb5xA7PGQMAlafOmmq54vdzr8qSSRIsVDLTRPM7u76-Gu-GK0)
+        /// ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/clearing-house/diagrams/remove-margin.plantuml)
         ///
         /// ## Parameters
         /// - `amount`: The balance of collateral asset to be transferred from the Clearing House to
@@ -666,7 +666,7 @@ pub mod pallet {
         ///
         /// # Overview
         ///
-        /// ![](http://www.plantuml.com/plantuml/svg/FOux3i8m40LxJW47IBQdYeJ4FJQRHsnXhwFzYEiJKL2DPgfPFDWYUxlSgahB3MdjMY8ElnCPV-QzHiar7IP30ngpZ4wFqO_Xl3OyAybV22u5HY_Z3f86jghxL4OwQAkydzr931oOEjiRCH-DzNUmGBUJNm00)
+        /// ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/clearing-house/diagrams/create-market.plantuml)
         ///
         /// ## Parameters
         /// - `config`: specification for market creation
@@ -718,7 +718,7 @@ pub mod pallet {
         /// - Reversing of the existing position, if the trade's direction is counter to the
         ///   existing position's one and its magnitude is greater than the existing position's size
         ///
-        /// ![](http://www.plantuml.com/plantuml/svg/FOuzgiD030RxTugN0zZgKna2kOUyLhm2hRJeXrm_9aMgZszWOBP8zAmXVpVM9dLGkVptp1bt0CVtUdBssYl8cscIvjfimCF6jC1TwCdGVWSeMYU7b-CWQ4BehEVIhOBWO3ml7c2JTBaCJZPTfw1-2pRIuzeF)
+        /// ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/clearing-house/diagrams/open-position.plantuml)
         ///
         /// ## Parameters
         ///
@@ -789,7 +789,7 @@ pub mod pallet {
         /// Sells all of the base asset in the specified market if the trader has a position in it.
         /// This realizes the funding payments for the position.
         ///
-        /// ![](https://www.plantuml.com/plantuml/svg/FSr12W8n30NGlQVG0ynaxsf0y1wPDhQ1j2b9YjUtk9ZLvp_u_CC3BMQJsuDxafbfcjnhnF0dGE6eyzoJDdXf6-fu2hqPqbN0y0lagPB1nx0H924qxcMhEfqWCvRblboTjZNZOEtx4Ep_tuDwNla3)
+        /// ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/clearing-house/diagrams/close-position.plantuml)
         ///
         /// This extrinsic also attempts to update the corresponding market's funding rate at the
         /// end.
@@ -844,7 +844,7 @@ pub mod pallet {
         /// influences the unrealized funding of all traders. Settlement of the unrealized funding
         /// is done by traders via other extrinsics.
         ///
-        /// ![](https://www.plantuml.com/plantuml/svg/FOqx2iCm40Nxd28vWFtwL8P0xh6MrfPWzM4_vFenAL8DmnIpcPDwDBazQayIcKFbNjodFO6pUebzJQFXDTeSHhlmkoBz1KeViAN2YaEfCP8mQUtdKaOO8rSwbPeXPYRdvOYUhxfEeVxxRjppnIy0)
+        /// ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/clearing-house/diagrams/update-funding.plantuml)
         ///
         /// ## Parameters
         /// - `market_id`: the perpetuals market Id
@@ -890,7 +890,7 @@ pub mod pallet {
         ///
         /// # Overview
         ///
-        /// ![](https://www.plantuml.com/plantuml/svg/FOsxhG91303pLyMZ0CuvqKb8zE7pcbrBtW_-YFOv4H2DPfBPFT0Yk_vTP91cuJJzRn7BRm1LekMnqUnmdtrDnqFv8K0_0SCti5DZWwTXPo1bD1drscOwGn6iPtTGUQKK3DwMulWkTnxbv0S0)
+        /// ![](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/escher-exchange/escher/main/clearing-house/diagrams/liquidate.plantuml)
         ///
         /// Liquidation can be either full or partial. In the former case, positions are closed
         /// entirely, while in the latter, they are partially closed. Both proceed by
