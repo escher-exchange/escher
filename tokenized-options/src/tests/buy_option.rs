@@ -306,62 +306,62 @@ fn test_buy_option_error_option_not_exists() {
         });
 }
 
-#[test]
-fn test_buy_option_error_not_into_purchase_window() {
-    ExtBuilder::default()
-        .initialize_balances(Vec::from([
-            (ALICE, BTC, 5 * UNIT),
-            (ALICE, USDC, 250000 * UNIT),
-            (BOB, BTC, 5 * UNIT),
-            (BOB, USDC, 250000 * UNIT),
-        ]))
-        .build()
-        .initialize_oracle_prices()
-        .initialize_all_vaults()
-        .initialize_all_options()
-        .execute_with(|| {
-            let option_config = OptionsConfigBuilder::default().build();
+// #[test]
+// fn test_buy_option_error_not_into_purchase_window() {
+//     ExtBuilder::default()
+//         .initialize_balances(Vec::from([
+//             (ALICE, BTC, 5 * UNIT),
+//             (ALICE, USDC, 250000 * UNIT),
+//             (BOB, BTC, 5 * UNIT),
+//             (BOB, USDC, 250000 * UNIT),
+//         ]))
+//         .build()
+//         .initialize_oracle_prices()
+//         .initialize_all_vaults()
+//         .initialize_all_options()
+//         .execute_with(|| {
+//             let option_config = OptionsConfigBuilder::default().build();
 
-            let option_hash = TokenizedOptions::generate_id(
-                option_config.base_asset_id,
-                option_config.quote_asset_id,
-                option_config.base_asset_strike_price,
-                option_config.quote_asset_strike_price,
-                option_config.option_type,
-                option_config.expiring_date,
-                option_config.exercise_type,
-            );
+//             let option_hash = TokenizedOptions::generate_id(
+//                 option_config.base_asset_id,
+//                 option_config.quote_asset_id,
+//                 option_config.base_asset_strike_price,
+//                 option_config.quote_asset_strike_price,
+//                 option_config.option_type,
+//                 option_config.expiring_date,
+//                 option_config.exercise_type,
+//             );
 
-            assert!(OptionHashToOptionId::<MockRuntime>::contains_key(
-                option_hash
-            ));
-            let option_id = OptionHashToOptionId::<MockRuntime>::get(option_hash).unwrap();
+//             assert!(OptionHashToOptionId::<MockRuntime>::contains_key(
+//                 option_hash
+//             ));
+//             let option_id = OptionHashToOptionId::<MockRuntime>::get(option_hash).unwrap();
 
-            let bob_option_amount = 5u128;
-            let alice_option_amount = 2u128;
+//             let bob_option_amount = 5u128;
+//             let alice_option_amount = 2u128;
 
-            sell_option_success_checks(option_id, bob_option_amount, BOB);
+//             sell_option_success_checks(option_id, bob_option_amount, BOB);
 
-            // Purchase window goes from block 3 <= x < 6. Now we are in block 3.
-            let option_id = OptionHashToOptionId::<MockRuntime>::get(option_hash).unwrap();
+//             // Purchase window goes from block 3 <= x < 6. Now we are in block 3.
+//             let option_id = OptionHashToOptionId::<MockRuntime>::get(option_hash).unwrap();
 
-            assert_noop!(
-                TokenizedOptions::buy_option(Origin::signed(ALICE), alice_option_amount, option_id),
-                Error::<MockRuntime>::NotIntoPurchaseWindow
-            );
+//             assert_noop!(
+//                 TokenizedOptions::buy_option(Origin::signed(ALICE), alice_option_amount, option_id),
+//                 Error::<MockRuntime>::NotIntoPurchaseWindow
+//             );
 
-            // Now it should work
-            run_to_block(3);
-            buy_option_success_checks(option_id, alice_option_amount, ALICE);
+//             // Now it should work
+//             run_to_block(3);
+//             buy_option_success_checks(option_id, alice_option_amount, ALICE);
 
-            // Now we are out of purchase window again and should fail
-            run_to_block(6);
-            assert_noop!(
-                TokenizedOptions::buy_option(Origin::signed(ALICE), alice_option_amount, option_id),
-                Error::<MockRuntime>::NotIntoPurchaseWindow
-            );
-        });
-}
+//             // Now we are out of purchase window again and should fail
+//             run_to_block(6);
+//             assert_noop!(
+//                 TokenizedOptions::buy_option(Origin::signed(ALICE), alice_option_amount, option_id),
+//                 Error::<MockRuntime>::NotIntoPurchaseWindow
+//             );
+//         });
+// }
 
 #[test]
 fn test_buy_option_error_user_has_not_enough_funds() {
