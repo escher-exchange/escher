@@ -6,20 +6,20 @@ use frame_support::pallet_prelude::{Decode, Encode, MaxEncodedLen, TypeInfo};
 ///
 /// Use [`Swapped`] data structure in storage to not mix up value representations.
 pub trait SwapBytes: Sized {
-	/// Reverses the byte order of the value.
-	fn swap_bytes(self) -> Self;
+    /// Reverses the byte order of the value.
+    fn swap_bytes(self) -> Self;
 }
 
 impl SwapBytes for u32 {
-	fn swap_bytes(self) -> u32 {
-		u32::swap_bytes(self)
-	}
+    fn swap_bytes(self) -> u32 {
+        u32::swap_bytes(self)
+    }
 }
 
 impl SwapBytes for u64 {
-	fn swap_bytes(self) -> u64 {
-		u64::swap_bytes(self)
-	}
+    fn swap_bytes(self) -> u64 {
+        u64::swap_bytes(self)
+    }
 }
 
 /// Stores a value with swapped bytes in memory.
@@ -28,14 +28,14 @@ impl SwapBytes for u64 {
 pub struct Swapped<T: SwapBytes>(T);
 
 impl<T: SwapBytes> From<T> for Swapped<T> {
-	fn from(value: T) -> Self {
-		Swapped(value.swap_bytes())
-	}
+    fn from(value: T) -> Self {
+        Swapped(value.swap_bytes())
+    }
 }
 
 impl<T: SwapBytes> Swapped<T> {
-	/// Restore non-swapped value.
-	pub fn into_value(self) -> T {
-		self.0.swap_bytes()
-	}
+    /// Restore non-swapped value.
+    pub fn into_value(self) -> T {
+        self.0.swap_bytes()
+    }
 }

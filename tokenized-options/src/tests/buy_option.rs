@@ -346,8 +346,8 @@ fn test_buy_option_error_option_not_exists() {
 //             let option_id = OptionHashToOptionId::<MockRuntime>::get(option_hash).unwrap();
 
 //             assert_noop!(
-//                 TokenizedOptions::buy_option(Origin::signed(ALICE), alice_option_amount, option_id),
-//                 Error::<MockRuntime>::NotIntoPurchaseWindow
+//                 TokenizedOptions::buy_option(Origin::signed(ALICE), alice_option_amount,
+// option_id),                 Error::<MockRuntime>::NotIntoPurchaseWindow
 //             );
 
 //             // Now it should work
@@ -357,8 +357,8 @@ fn test_buy_option_error_option_not_exists() {
 //             // Now we are out of purchase window again and should fail
 //             run_to_block(6);
 //             assert_noop!(
-//                 TokenizedOptions::buy_option(Origin::signed(ALICE), alice_option_amount, option_id),
-//                 Error::<MockRuntime>::NotIntoPurchaseWindow
+//                 TokenizedOptions::buy_option(Origin::signed(ALICE), alice_option_amount,
+// option_id),                 Error::<MockRuntime>::NotIntoPurchaseWindow
 //             );
 //         });
 // }

@@ -11,12 +11,12 @@ pub const DAVE: AccountId = account_id_from_u64(4);
 pub const EVEN: AccountId = account_id_from_u64(5);
 
 pub const fn account_id_from_u64(n: u64) -> AccountId {
-	let bytes_src = n.to_be_bytes();
-	let mut bytes_dst = [0u8; 32];
-	let mut k = 0;
-	while k < bytes_src.len() {
-		bytes_dst[k + 24] = bytes_src[k];
-		k += 1;
-	}
-	Public(bytes_dst)
+    let bytes_src = n.to_be_bytes();
+    let mut bytes_dst = [0u8; 32];
+    let mut k = 0;
+    while k < bytes_src.len() {
+        bytes_dst[k + 24] = bytes_src[k];
+        k += 1;
+    }
+    Public(bytes_dst)
 }

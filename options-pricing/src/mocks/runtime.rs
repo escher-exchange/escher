@@ -1,11 +1,12 @@
 use crate as pallet_options_pricing;
-use crate::mocks::{accounts::*, assets::*};
-use crate::tests::run_to_block;
+use crate::{
+    mocks::{accounts::*, assets::*},
+    tests::run_to_block,
+};
 use composable_traits::{defi::DeFiComposableConfig, governance::SignedRawOrigin, oracle::Price};
-use frame_support::traits::{EitherOfDiverse, Hooks};
 use frame_support::{
     ord_parameter_types, parameter_types,
-    traits::{Everything, GenesisBuild},
+    traits::{EitherOfDiverse, Everything, GenesisBuild, Hooks},
     PalletId,
 };
 

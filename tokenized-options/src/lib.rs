@@ -37,7 +37,7 @@
 //!
 //! ### Implementations
 //! The Tokenized Option pallet provides implementations for the following traits:
-//! - [`TokenizedOptions`](composable_traits::tokenized_options::TokenizedOptions)
+//! - [`TokenizedOptions`](traits::tokenized_options::TokenizedOptions)
 //!
 //! ## Interface
 //!
@@ -64,16 +64,13 @@
 //!   and its part of the premium.
 //!
 //! ### Runtime Storage Objects
-//! - [`AssetToVault`]: maps a [`MayBeAssetId`](DefiComposableConfig::MayBeAssetId) to its vault.
-//! - [`OptionIdToOption`]: maps a [`MayBeAssetId`](DefiComposableConfig::MayBeAssetId) to its
-//!   option information.
-//! - [`OptionHashToOptionId`]: maps a [`H256`] to its optionId. The hash is obtained from option's
+//! - [`AssetToVault`]: maps an AssetId to its vault.
+//! - [`OptionIdToOption`]: maps an OptionId to its option information.
+//! - [`OptionHashToOptionId`]: maps a `H256` to its optionId. The hash is obtained from option's
 //!   attributes.
-//! - [`Sellers`]: maps an OptionId [`MayBeAssetId`](DefiComposableConfig::MayBeAssetId) and an
-//!   [`AccountId`](Config::AccountId) to
-//! its position as a seller.
-//! - [`Scheduler`]: maps a [`Moment`](Config::Moment) to an OptionId
-//!   [`MayBeAssetId`](DefiComposableConfig::MayBeAssetId) identifying the timestamp
+//! - [`Sellers`]: maps an OptionId and an AccountId to its position as a seller.
+//! - `Scheduler`: maps a [`Moment`](Config::Moment) to an OptionId [`OptionId`](OptionIdOf)
+//!   identifying the timestamp
 //! of the next phase of the epoch for the option.
 //!
 //! ### Example
@@ -156,7 +153,11 @@ pub mod pallet {
         vault::{CapabilityVault, Deposit as Duration, Vault, VaultConfig},
     };
 
-    use traits::{options_pricing::*, tokenized_options::*, swap_bytes::{SwapBytes, Swapped}};
+    use traits::{
+        options_pricing::*,
+        swap_bytes::{SwapBytes, Swapped},
+        tokenized_options::*,
+    };
 
     use frame_support::{
         pallet_prelude::*,
@@ -283,29 +284,29 @@ pub mod pallet {
     // ----------------------------------------------------------------------------------------------------
     //		Storage
     // ----------------------------------------------------------------------------------------------------
-    /// Maps [`MayBeAssetId`](DefiComposableConfig::MayBeAssetId) to the corresponding
+    /// Maps [`AssetId`](AssetIdOf) to the corresponding
     /// [`VaultId`](Config::VaultId).
     #[pallet::storage]
     #[pallet::getter(fn asset_id_to_vault_id)]
     pub type AssetToVault<T: Config> = StorageMap<_, Blake2_128Concat, AssetIdOf<T>, VaultIdOf<T>>;
 
-    /// Maps [`MayBeAssetId`](DefiComposableConfig::MayBeAssetId) to the corresponding
-    /// [`OptionToken`](OptionToken) struct.
+    /// Maps [`OptionId`](OptionIdOf) to the corresponding
+    /// `OptionToken` struct.
     #[pallet::storage]
     #[pallet::getter(fn option_id_to_option)]
     pub type OptionIdToOption<T: Config> =
         StorageMap<_, Blake2_128Concat, OptionIdOf<T>, OptionToken<T>>;
 
     /// Maps option's hash [`H256`](H256) with the option id
-    /// [`MayBeAssetId`](DefiComposableConfig::MayBeAssetId). Used to quickly check if option exists
+    /// [`OptionId`](OptionIdOf). Used to quickly check if option exists
     /// and for all the other searching use cases.
     #[pallet::storage]
     #[pallet::getter(fn options_hash)]
     pub type OptionHashToOptionId<T: Config> = StorageMap<_, Blake2_128Concat, H256, OptionIdOf<T>>;
 
-    /// Maps [`AccountId`](Config::AccountId) and option id
-    /// [`MayBeAssetId`](DefiComposableConfig::MayBeAssetId) to the user's
-    /// [`SellerPosition`](SellerPosition).
+    /// Maps [`AccountId`](frame_system::Config::AccountId) and option id
+    /// [`OptionId`](OptionIdOf) to the user's
+    /// `SellerPosition`.
     #[pallet::storage]
     #[pallet::getter(fn sellers)]
     pub type Sellers<T: Config> = StorageDoubleMap<
@@ -318,8 +319,8 @@ pub mod pallet {
     >;
 
     /// Maps a timestamp [`Moment`](Config::Moment) and option id
-    /// [`MayBeAssetId`](DefiComposableConfig::MayBeAssetId) to its currently active window type
-    /// [`WindowType`](WindowType). Scheduler is a timestamp-ordered list.
+    /// [`OptionId`](OptionIdOf) to its currently active window type.
+    /// Scheduler is a timestamp-ordered list.
     #[pallet::storage]
     pub(crate) type Scheduler<T: Config> =
         StorageDoubleMap<_, Identity, Swapped<MomentOf<T>>, Identity, OptionIdOf<T>, Status>;
@@ -366,11 +367,11 @@ pub mod pallet {
             option_id: OptionIdOf<T>,
         },
 
-        /// Emitted after a successful call to the [`settle_option`](Pallet::settle_option)
+        /// Emitted after a successful call to the `do_settle_option`
         /// function.
         SettleOption { option_id: OptionIdOf<T> },
 
-        /// Emitted after a successful call to the [`exercise_option`](Pallet::exercise_option)
+        /// Emitted after a successful call to the `exercise_option`
         /// extrinsic.
         ExerciseOption {
             user: AccountIdOf<T>,
@@ -489,7 +490,7 @@ pub mod pallet {
                 let moment = moment_swapped.into_value();
 
                 if now < moment {
-                    break;
+                    break
                 }
 
                 <Scheduler<T>>::remove(moment_swapped, &option_id);
@@ -574,8 +575,8 @@ pub mod pallet {
         ///   option.
         /// - Updates the [`OptionHashToOptionId`] storage mapping the option hash with the
         ///   generated option id.
-        /// - Updates the [`Scheduler`] storage inserting the timestamps when the option should
-        ///   change phases.
+        /// - Updates the `Scheduler` storage inserting the timestamps when the option should change
+        ///   phases.
         ///
         /// ## Errors
         /// - [`OptionAlreadyExists`](Error::OptionAlreadyExists): raised when trying to create a
@@ -952,8 +953,8 @@ pub mod pallet {
         ///   option.
         /// - Updates the [`OptionHashToOptionId`] storage mapping the option hash with the
         ///   generated option id.
-        /// - Updates the [`Scheduler`] storage inserting the timestamps when the option should
-        ///   change phases.
+        /// - Updates the `Scheduler` storage inserting the timestamps when the option should change
+        ///   phases.
         ///
         /// ## Errors
         /// - [`OptionAlreadyExists`](Error::OptionAlreadyExists): raised when trying to create a
@@ -975,12 +976,10 @@ pub mod pallet {
                 Ok(validated_option_config) => Self::do_create_option(validated_option_config),
                 Err(error) => match error {
                     "ValidateOptionDoesNotExist" => Err(Error::<T>::OptionAlreadyExists.into()),
-                    "ValidateOptionAssetVaultsExist" => {
-                        Err(Error::<T>::OptionAssetVaultsDoNotExist.into())
-                    },
-                    "ValidateOptionAttributes" => {
-                        Err(Error::<T>::OptionAttributesAreInvalid.into())
-                    },
+                    "ValidateOptionAssetVaultsExist" =>
+                        Err(Error::<T>::OptionAssetVaultsDoNotExist.into()),
+                    "ValidateOptionAttributes" =>
+                        Err(Error::<T>::OptionAttributesAreInvalid.into()),
                     _ => Err(Error::<T>::UnexpectedError.into()),
                 },
             }
@@ -1387,12 +1386,11 @@ pub mod pallet {
                         position.option_amount = new_option_amount;
                         position.shares_amount = new_shares_amount;
                     },
-                    None => {
+                    None =>
                         *position = Some(SellerPosition {
                             option_amount,
                             shares_amount,
-                        })
-                    },
+                        }),
                 }
                 Ok(())
             })?;
@@ -1470,9 +1468,9 @@ pub mod pallet {
             // 1. Asset amount <= Max asset amount withdrawable by user
             // 2. Option amount <= Max option amount withdrawable by user
             ensure!(
-                asset_amount
-                    <= VaultOf::<T>::lp_share_value(&vault_id, seller_position.shares_amount)?
-                    && option_amount <= seller_position.option_amount,
+                asset_amount <=
+                    VaultOf::<T>::lp_share_value(&vault_id, seller_position.shares_amount)? &&
+                    option_amount <= seller_position.option_amount,
                 Error::<T>::UserDoesNotHaveEnoughCollateralDeposited
             );
 
@@ -1569,7 +1567,7 @@ pub mod pallet {
 
             // Check if there are enough options for sale
             if new_total_issuance_buyer > option.total_issuance_seller {
-                return Err(DispatchError::from(Error::<T>::NotEnoughOptionsForSale));
+                return Err(DispatchError::from(Error::<T>::NotEnoughOptionsForSale))
             }
 
             let new_total_premium_paid = option
@@ -1894,7 +1892,7 @@ pub mod pallet {
             r: Rounding,
         ) -> Result<BalanceOf<T>, DispatchError> {
             if c == BalanceOf::<T>::zero() {
-                return Ok(BalanceOf::<T>::zero());
+                return Ok(BalanceOf::<T>::zero())
             };
 
             let a = <T::Convert as Convert<BalanceOf<T>, u128>>::convert(a);

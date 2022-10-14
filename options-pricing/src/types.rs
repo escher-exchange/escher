@@ -10,17 +10,17 @@ use sp_std::fmt::Debug;
 #[scale_info(skip_type_params(T))]
 #[codec(mel_bound())]
 pub struct Snapshot<T: Config> {
-	pub interest_rate: Decimal,
-	pub iv: Decimal,
-	pub delta: Decimal,
-	pub theta: Decimal,
-	pub rho: Decimal,
-	pub vega: Decimal,
-	pub gamma: Decimal,
-	pub option_price: BalanceOf<T>,
-	pub asset_spot_price: BalanceOf<T>,
-	pub total_issuance_buyer: BalanceOf<T>,
-	pub total_premium_paid: BalanceOf<T>,
+    pub interest_rate: Decimal,
+    pub iv: Decimal,
+    pub delta: Decimal,
+    pub theta: Decimal,
+    pub rho: Decimal,
+    pub vega: Decimal,
+    pub gamma: Decimal,
+    pub option_price: BalanceOf<T>,
+    pub asset_spot_price: BalanceOf<T>,
+    pub total_issuance_buyer: BalanceOf<T>,
+    pub total_premium_paid: BalanceOf<T>,
 }
 
 // ----------------------------------------------------------------------------------------------------

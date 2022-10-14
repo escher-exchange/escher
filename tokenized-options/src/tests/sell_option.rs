@@ -528,12 +528,10 @@ fn test_sell_option_error_deposits_not_allowed() {
             let option_id = OptionHashToOptionId::<MockRuntime>::get(option_hash).unwrap();
 
             let vault_id = match option_config.option_type {
-                OptionType::Call => {
-                    TokenizedOptions::asset_id_to_vault_id(option_config.base_asset_id).unwrap()
-                },
-                OptionType::Put => {
-                    TokenizedOptions::asset_id_to_vault_id(option_config.quote_asset_id).unwrap()
-                },
+                OptionType::Call =>
+                    TokenizedOptions::asset_id_to_vault_id(option_config.base_asset_id).unwrap(),
+                OptionType::Put =>
+                    TokenizedOptions::asset_id_to_vault_id(option_config.quote_asset_id).unwrap(),
             };
 
             assert_ok!(<Vault as CapabilityVault>::stop_deposits(&vault_id));
@@ -582,12 +580,10 @@ fn test_sell_option_error_deposits_not_allowed_update_position() {
             ));
 
             let vault_id = match option_config.option_type {
-                OptionType::Call => {
-                    TokenizedOptions::asset_id_to_vault_id(option_config.base_asset_id).unwrap()
-                },
-                OptionType::Put => {
-                    TokenizedOptions::asset_id_to_vault_id(option_config.quote_asset_id).unwrap()
-                },
+                OptionType::Call =>
+                    TokenizedOptions::asset_id_to_vault_id(option_config.base_asset_id).unwrap(),
+                OptionType::Put =>
+                    TokenizedOptions::asset_id_to_vault_id(option_config.quote_asset_id).unwrap(),
             };
 
             assert_ok!(<Vault as CapabilityVault>::stop_deposits(&vault_id));
