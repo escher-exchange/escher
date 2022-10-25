@@ -1,0 +1,19 @@
+@startuml
+entity ProtocolAccount #yellow
+participant "Option Pallet" as Protocol #green
+database Options
+database Scheduler
+
+group #00000022 Create Option
+ProtocolAccount -> Protocol: Create Option (passing option config)
+activate Protocol
+Protocol --> Protocol: check if option does not already exist
+Protocol --> Protocol: check if option asset_vaults exist
+Protocol --> Protocol: check if option attributes are valid
+Protocol -> Protocol: generate new option id
+Protocol -> Options: save new option
+Protocol -> Scheduler: save epoch for new option
+ProtocolAccount o<- Protocol: emit event
+deactivate Protocol
+end
+@enduml

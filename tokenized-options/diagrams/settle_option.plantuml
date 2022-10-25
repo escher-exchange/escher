@@ -1,0 +1,25 @@
+@startuml
+participant "Option Pallet" as Protocol #green
+database Options
+database Vaults
+participant "Vault Pallet" as Vault #green
+participant Oracle #green
+entity ProtocolAccount #yellow
+
+
+group #00000022 Settlement Window [Day 8 (exp. date)]
+Protocol -> Oracle: get asset spot price at expiration time
+activate Oracle
+Protocol <-- Oracle: asset_price
+deactivate Oracle
+Protocol -> Options: save asset spot price at expiration time
+Protocol -> Options: calculate and save exercise amount for buyers
+Protocol -> Options: save info to calculate remaining collateral for sellers 
+Protocol -> Options: save info to calculate premium for sellers
+Protocol -> Vaults: get vault
+Protocol -> Vault: withdraw funds to pay all buyers (if option is in-the-money)
+activate Vault
+ProtocolAccount <-- Vault: receive funds
+deactivate Vault
+end
+@enduml

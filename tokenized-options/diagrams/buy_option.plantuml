@@ -1,0 +1,23 @@
+@startuml
+actor Buyer #blue
+participant "Option Pallet" as Protocol #green
+database Options
+entity ProtocolAccount #yellow
+participant "Pricing Pallet" as Pricing #green
+
+group #0000FF33 Purchase Window
+Buyer -> Protocol: Buy option (passing option_id)
+activate Protocol
+Protocol -> Options: get option
+Protocol -> Pricing: calculate premium to pay
+activate Pricing
+Protocol <-- Pricing: premium_price
+deactivate Pricing
+Protocol -> Options: check option available for sale
+Protocol --> Protocol: check if Buyer owns enough funds to pay premium
+Protocol -> ProtocolAccount: transfer premium
+Buyer <- Protocol: mint option token
+Buyer o<- Protocol: emit event
+deactivate Protocol
+end
+@enduml

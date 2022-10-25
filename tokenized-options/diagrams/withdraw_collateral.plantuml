@@ -1,0 +1,31 @@
+@startuml
+actor Seller #red
+participant "Option Pallet" as Protocol #green
+database Options
+database Vaults
+database Sellers
+entity ProtocolAccount #yellow
+participant "Vault Pallet" as Vault #green
+
+
+group #FFFF0033 Exercise Window [From Day 8 (exp. date) to Day ?]
+group #FFFF0055 Withdraw Collateral 
+Seller -> Protocol: Withdraw collateral (passing option_id)
+activate Protocol
+Protocol -> Options: get option
+Protocol --> Sellers: check if Seller has position
+Protocol -> Vaults: get vault
+Protocol --> Protocol: calculate shares to give to Seller
+Protocol --> Protocol: calculate premium to give to Seller
+Protocol -> Vault: withdraw collateral from vault (yield included)
+activate Vault
+ProtocolAccount <-- Vault: receive funds
+deactivate Vault
+Seller <- ProtocolAccount: transfer collateral
+Seller <- ProtocolAccount: transfer premium
+Protocol -> Sellers: delete position
+Seller o<- Protocol: emit event
+deactivate Protocol
+end
+end
+@enduml
